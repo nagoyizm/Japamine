@@ -179,6 +179,7 @@ import { DialogService } from './services/dialog/dialog.service';
 import { ElectronService } from './services/electron.service';
 import { FileService } from './services/file/file.service';
 import { FolderService } from './services/folder/folder.service';
+import { FolderMetadataService } from './services/folder/folder-metadata.service';
 import { GenreService } from './services/genre/genre.service';
 import { CachedAlbumArtworkGetter } from './services/metadata/cached-album-artwork-getter';
 import { NavigationService } from './services/navigation/navigation.service';
@@ -202,6 +203,7 @@ import { TranslatorService } from './services/translator/translator.service';
 import { TrayService } from './services/tray/tray.service';
 import { UpdateService } from './services/update/update.service';
 import { LyricsService } from './services/lyrics/lyrics.service';
+import { LyricsRomanizationService } from './services/lyrics/lyrics-romanization.service';
 import { EmbeddedLyricsGetter } from './services/lyrics/embedded-lyrics-getter';
 import { LrcLyricsGetter } from './services/lyrics/lrc-lyrics-getter';
 import { OnlineLyricsGetter } from './services/lyrics/online-lyrics-getter';
@@ -237,6 +239,11 @@ import { NavigationServiceBase } from './services/navigation/navigation.service.
 import { ApplicationServiceBase } from './services/application/application.service.base';
 import { AZLyricsApi } from './common/api/lyrics/a-z-lyrics.api';
 import { ChartLyricsApi } from './common/api/lyrics/chart-lyrics.api';
+import { LrclibApi } from './common/api/lyrics/lrclib.api';
+import { LyricsOvhApi } from './common/api/lyrics/lyrics-ovh.api';
+import { GeniusApi } from './common/api/lyrics/genius.api';
+import { JLyricApi } from './common/api/lyrics/j-lyric.api';
+import { UtaTenApi } from './common/api/lyrics/uta-ten.api';
 import { ArtistsFilterPipe } from './ui/pipes/artists-filter.pipe';
 import { TrackRepositoryBase } from './data/repositories/track-repository.base';
 import { FolderRepositoryBase } from './data/repositories/folder-repository.base';
@@ -297,6 +304,7 @@ import { SwitchPlayerButtonComponent } from './ui/components/switch-player-butto
 import { CoverPlayerPlaybackQueueComponent } from './ui/components/mini-players/cover-player/cover-player-playback-queue/cover-player-playback-queue.component';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { CoverPlayerVolumeControlComponent } from './ui/components/mini-players/cover-player/cover-player-volume-control/cover-player-volume-control.component';
+import { MiniPlayerComponent } from './ui/components/mini-players/mini-player/mini-player.component';
 import { VolumeIconComponent } from './ui/components/volume-icon/volume-icon.component';
 import { EditTracksDialogComponent } from './ui/components/dialogs/edit-tracks-dialog/edit-tracks-dialog.component';
 import { InfoDialogComponent } from './ui/components/dialogs/info-dialog/info-dialog.component';
@@ -483,6 +491,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         CoverPlayerComponent,
         CoverPlayerPlaybackQueueComponent,
         CoverPlayerVolumeControlComponent,
+        MiniPlayerComponent,
         VolumeIconComponent,
         EditTracksDialogComponent,
         EditAlbumDialogComponent,
@@ -551,6 +560,11 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         FanartApi,
         ChartLyricsApi,
         AZLyricsApi,
+        LrclibApi,
+        LyricsOvhApi,
+        GeniusApi,
+        JLyricApi,
+        UtaTenApi,
         MusicBrainzApi,
         MetadataPatcher,
         TracksColumnsOrdering,
@@ -590,6 +604,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         LrcLyricsGetter,
         SrtLyricsGetter,
         OnlineLyricsGetter,
+        LyricsRomanizationService,
         IntegrationTestRunner,
         AudioVisualizer,
         OnlineArtistImageGetter,
@@ -630,6 +645,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         { provide: PlaylistFolderServiceBase, useClass: PlaylistFolderService },
         { provide: AppearanceServiceBase, useClass: AppearanceService },
         { provide: FolderServiceBase, useClass: FolderService },
+        FolderMetadataService,
         { provide: FileServiceBase, useClass: FileService },
         { provide: TrayServiceBase, useClass: TrayService },
         { provide: SemanticZoomServiceBase, useClass: SemanticZoomService },

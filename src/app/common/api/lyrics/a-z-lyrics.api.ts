@@ -12,11 +12,9 @@ import { CheerioAPI } from 'cheerio';
 
 @Injectable()
 export class AZLyricsApi implements ILyricsApi {
-    public constructor(private httpClient: HttpClient) {}
+    public readonly sourceName: string = 'AZLyrics';
 
-    public get sourceName(): string {
-        return 'AZLyrics';
-    }
+    public constructor(private readonly httpClient: HttpClient) {}
 
     public async getLyricsAsync(artist: string, title: string): Promise<Lyrics> {
         const url: string = this.buildUrl(artist, title);
@@ -38,7 +36,7 @@ export class AZLyricsApi implements ILyricsApi {
 
         lyrics = lyrics.slice(0, -2);
 
-        return new Lyrics(this.sourceName, lyrics);
+        return new Lyrics(this.sourceName, lyrics, title, artist);
     }
 
     private buildUrl(artist: string, title: string): string {

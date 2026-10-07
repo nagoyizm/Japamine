@@ -56,6 +56,11 @@ export class NavigationService implements NavigationServiceBase {
         await this.router.navigate(['/coverplayer']);
     }
 
+    public async navigateToMiniPlayerAsync(): Promise<void> {
+        await this.router.navigate(['/mini-player']);
+        this.appearanceService.applyMargins(false);
+    }
+
     public showPlaybackQueue(): void {
         this.showPlaybackQueueRequested.next();
         this.refreshPlaybackQueueListRequested.next();

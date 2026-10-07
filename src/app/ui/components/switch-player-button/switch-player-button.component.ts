@@ -1,5 +1,6 @@
 import { Component, Input, ViewEncapsulation } from '@angular/core';
 import { SwitchPlayerService } from '../../../services/player-switcher/switch-player.service';
+import { ipcRenderer } from 'electron';
 
 @Component({
     selector: 'app-switch-player-button',

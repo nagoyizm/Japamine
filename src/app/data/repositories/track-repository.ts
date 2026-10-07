@@ -522,4 +522,24 @@ export class TrackRepository implements TrackRepositoryBase {
             replayGainAlbumPeak: track.replayGainAlbumPeak,
         });
     }
+
+    public getTracksWithPlays(): Track[] | undefined {
+        const database: any = this.databaseFactory.create();
+        const statement = database.prepare(
+            `${QueryParts.selectTracksQueryPart(true)} AND t.PlayCount > 0 ORDER BY t.PlayCount DESC;`,
+        );
+
+        const tracks: Track[] | undefined = statement.all();
+        return tracks;
+    }
+
+    public getTracksInDirectoryPrefix(directoryPrefix: string): Track[] | undefined {
+        const database: any = this.databaseFactory.create();
+        const statement = database.prepare(
+            `${QueryParts.selectTracksQueryPart(true)} AND t.Path LIKE @prefix;`,
+        );
+
+        const tracks: Track[] | undefined = statement.all({ prefix: `${directoryPrefix}%` });
+        return tracks;
+    }
 }

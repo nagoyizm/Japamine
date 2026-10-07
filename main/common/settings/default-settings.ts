@@ -111,7 +111,7 @@ export const DEFAULT_SETTINGS = {
     miniPlayerAlwaysOnTop: false,
     miniPlayerLockPosition: false,
     miniPlayerAlwaysShowSong: false,
-    showRichLyrics: false,
+    showRichLyrics: true,
     richLyricsLineCount: 2,
     richLyricsFontSize: 1,
     showRefreshNotificationAtStartup: true,

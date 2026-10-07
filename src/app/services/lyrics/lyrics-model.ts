@@ -2,6 +2,11 @@ import { LyricsSourceType } from '../../common/api/lyrics/lyrics-source-type';
 import { TrackModel } from '../track/track-model';
 
 export class LyricsModel {
+    public romanizedLines: string[] | undefined;
+    public romanizedPlainText: string | undefined;
+    public matchedTitle?: string;
+    public matchedArtist?: string;
+
     public constructor(
         public track: TrackModel | undefined,
         public sourceName: string,
@@ -12,8 +17,18 @@ export class LyricsModel {
         public endTimeStamps: number[] | undefined,
     ) {}
 
-    public static plain(track: TrackModel | undefined, sourceName: string, sourceType: LyricsSourceType, text: string): LyricsModel {
-        return new LyricsModel(track, sourceName, sourceType, text, [], [], []);
+    public static plain(
+        track: TrackModel | undefined,
+        sourceName: string,
+        sourceType: LyricsSourceType,
+        text: string,
+        matchedTitle?: string,
+        matchedArtist?: string,
+    ): LyricsModel {
+        const model = new LyricsModel(track, sourceName, sourceType, text, [], [], []);
+        model.matchedTitle = matchedTitle;
+        model.matchedArtist = matchedArtist;
+        return model;
     }
 
     public static timed(

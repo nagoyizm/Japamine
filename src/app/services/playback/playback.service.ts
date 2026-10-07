@@ -383,7 +383,7 @@ export class PlaybackService {
         this.playbackSkipped.next();
     }
 
-    private async skipToSecondsAsync(seconds: number): Promise<void> {
+    public async skipToSecondsAsync(seconds: number): Promise<void> {
         await this.audioPlayer.skipToSecondsAsync(seconds);
         this._progress = this.getCurrentProgress();
         this.playbackSkipped.next();

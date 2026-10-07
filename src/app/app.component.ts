@@ -78,6 +78,8 @@ export class AppComponent implements OnInit {
             // await this.integrationTestRunner.executeTestsAsync();
         }
 
+        document.title = ProductInformation.applicationName;
+
         this.logger.info(
             `+++ Started ${ProductInformation.applicationName} ${ProductInformation.applicationVersion} +++`,
             'AppComponent',

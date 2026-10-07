@@ -1,23 +1,23 @@
 {
-    "name": "Dopamine",
-    "desktopName": "Dopamine",
+    "name": "Japamine",
+    "desktopName": "Japamine",
     "version": "3.0.11",
     "versionSuffix": "",
-    "copyright": "Copyright Digimezzo Ⓒ 2014 - 2026",
-    "description": "Dopamine is an elegant audio player which tries to make organizing and listening to music as simple and pretty as possible.",
+    "copyright": "Copyright Digimezzo Ⓒ 2014 - 2026. Modificado por nagoyizm.",
+    "description": "Japamine is an elegant audio player based on Dopamine, modified by nagoyizm.",
     "license": "GPL-3.0",
     "author": {
         "name": "Digimezzo",
         "email": "digimezzo@outlook.com",
         "url": "https://github.com/digimezzo/dopamine"
     },
-    "homepage": "https://github.com/digimezzo/dopamine",
+    "homepage": "https://github.com/nagoyizm/japamine",
     "repository": {
         "type": "git",
-        "url": "https://github.com/digimezzo/dopamine.git"
+        "url": "https://github.com/nagoyizm/japamine.git"
     },
     "bugs": {
-        "url": "https://github.com/digimezzo/dopamine/issues"
+        "url": "https://github.com/nagoyizm/japamine/issues"
     },
     "keywords": [
         "angular",

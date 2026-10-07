@@ -10,5 +10,5 @@ export class ProductInformation {
     public static readonly applicationName: string = StringUtils.capitalizeFirstLetter(getName() as string);
     public static readonly applicationVersion: string = getFullVersion();
     public static readonly applicationCopyright: string = getCopyright();
-    public static readonly releasesDownloadUrl: string = 'https://github.com/digimezzo/dopamine/releases/';
+    public static readonly releasesDownloadUrl: string = 'https://github.com/nagoyizm/japamine/releases/';
 }

@@ -9,6 +9,7 @@ import { SettingsComponent } from './ui/components/settings/settings.component';
 import { WelcomeComponent } from './ui/components/welcome/welcome.component';
 import { CoverPlayerComponent } from './ui/components/mini-players/cover-player/cover-player.component';
 import { HighlightsComponent } from './ui/components/highlights/highlights.component';
+import { MiniPlayerComponent } from './ui/components/mini-players/mini-player/mini-player.component';
 
 const routes: Routes = [
     {
@@ -46,6 +47,10 @@ const routes: Routes = [
     {
         path: 'information',
         component: InformationComponent,
+    },
+    {
+        path: 'mini-player',
+        component: MiniPlayerComponent,
     },
 ];
 

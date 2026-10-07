@@ -1,8 +1,13 @@
-![Dopamine](Dopamine.full.png)
+# Japamine
 
-# Dopamine
+> **Japamine** es una versión personalizada y modificada por **nagoyizm** basada en el reproductor de audio de código abierto **Dopamine**, desarrollado originalmente por **Digimezzo**.
+> Incorpora una nueva identidad visual inspirada en la paleta *Sakura Sunset* (coral rosé cálido y melocotón dorado), optimizaciones y mejoras dedicadas, conservando plenamente la licencia original GPL-3.0 y los créditos a sus creadores.
 
-Dopamine is an elegant audio player which tries to make organizing and listening to music as simple and pretty as possible. This version is written using Electron, Angular and Typescript and works on Windows, Linux and Mac.
+---
+
+## Créditos Originales / Dopamine Base
+
+Dopamine is an elegant audio player which tries to make organizing and listening to music as simple and pretty as possible. Originally written by **Digimezzo** using Electron, Angular and Typescript. Original project: [digimezzo/dopamine](https://github.com/digimezzo/dopamine).
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/dopamine)
 

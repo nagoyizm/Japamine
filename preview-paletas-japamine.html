@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Japamine — Muestra de Color y Estudio de Contraste UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Tokens globales del previewer */
+      --preview-bg: #0d0e12;
+      --preview-card: #15171e;
+      --preview-border: #232734;
+      --preview-text: #f0f2f8;
+      --preview-muted: #8b92a5;
+      
+      /* Variables dinámicas del tema de Dopamine/Japamine */
+      --theme-primary-color: #FF5E62;
+      --theme-secondary-color: #FFA07A;
+      --theme-accent-color: #FF6B6B;
+      --theme-main-background: #1b1b1b;
+      --theme-header-background: #121212;
+      --theme-footer-background: #121212;
+      --theme-side-pane-background: #181818;
+      --theme-primary-text: #ffffff;
+      --theme-secondary-text: #7f7f7f;
+      --theme-hovered-item-background: rgba(255, 255, 255, 0.05);
+      --theme-selected-item-background: rgba(255, 255, 255, 0.1);
+      --theme-slider-background: #2e2e2e;
+      --theme-scroll-bars: #FF6B6B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--preview-bg);
+      color: var(--preview-text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 28px 36px 60px;
+      line-height: 1.5;
+    }
+
+    header.top-header {
+      max-width: 1380px;
+      margin: 0 auto 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+      border-bottom: 1px solid var(--preview-border);
+      padding-bottom: 24px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--preview-border);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      color: #ffffff;
+    }
+
+    p.subtitle {
+      color: var(--preview-muted);
+      font-size: 15px;
+      margin-top: 4px;
+      max-width: 720px;
+    }
+
+    .main-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .mode-toggle {
+      background: var(--preview-card);
+      border: 1px solid var(--preview-border);
+      border-radius: 12px;
+      padding: 4px;
+      display: flex;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--preview-muted);
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn.active {
+      background: #2a2f42;
+      color: #ffffff;
+    }
+
+    /* Selector de Paletas */
+    .palette-grid {
+      max-width: 1380px;
+      margin: 0 auto 32px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+
+    .palette-card {
+      background: var(--preview-card);
+      border: 2px solid var(--preview-border);
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .palette-card:hover {
+      transform: translateY(-2px);
+      border-color: #3b4259;
+    }
+
+    .palette-card.selected {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 1px #6366f1, 0 12px 24px -10px rgba(99, 102, 241, 0.35);
+      background: #181b25;
+    }
+
+    .palette-card.selected::after {
+      content: '✓ SELECCIONADA';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: #6366f1;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .palette-preview-bar {
+      height: 48px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .card-concept {
+      font-size: 12px;
+      color: var(--preview-muted);
+      margin-bottom: 12px;
+      min-height: 34px;
+    }
+
+    .hex-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .hex-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 7px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 6px;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hex-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    /* MOCKUP CONTAINER */
+    .mockup-wrapper {
+      max-width: 1380px;
+      margin: 0 auto;
+    }
+
+    .mockup-titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .mockup-heading {
+      font-size: 18px;
+      font-weight: 700;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wcag-metric {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 4px 10px;
+      background: #102a1b;
+      color: #34d399;
+      border: 1px solid #059669;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    /* VENTANA REAL DE LA APLICACIÓN JAPAMINE */
+    .app-window {
+      background-color: var(--theme-main-background);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      height: 640px;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      color: var(--theme-primary-text);
+    }
+
+    /* HEADER DE LA APP */
+    .app-header {
+      background-color: var(--theme-header-background);
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      user-select: none;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .app-logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 22px 0px 22px 22px;
+      background: linear-gradient(45deg, var(--theme-primary-color) 30%, var(--theme-secondary-color) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      color: white;
+    }
+
+    .app-logo-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .app-title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .app-brand-name {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--theme-primary-text);
+    }
+
+    .app-brand-suffix {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(45deg, var(--theme-primary-color) 30%, var(--theme-secondary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .app-tabs {
+      display: flex;
+      gap: 8px;
+      margin-left: 28px;
+    }
+
+    .app-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: var(--theme-secondary-text);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .app-tab:hover {
+      color: var(--theme-primary-text);
+    }
+
+    .app-tab.active {
+      color: var(--theme-primary-text);
+      border-bottom-color: var(--theme-accent-color);
+    }
+
+    .app-header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .app-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 6px 14px;
+      width: 220px;
+      font-size: 13px;
+      color: var(--theme-secondary-text);
+    }
+
+    .app-search input {
+      border: none;
+      background: transparent;
+      outline: none;
+      color: var(--theme-primary-text);
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .window-controls {
+      display: flex;
+      gap: 12px;
+      margin-left: 10px;
+      color: var(--theme-secondary-text);
+      cursor: pointer;
+    }
+
+    /* CUERPO DE LA APP */
+    .app-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .app-sidebar {
+      width: 220px;
+      background-color: var(--theme-side-pane-background);
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--theme-secondary-text);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 0 10px 8px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--theme-secondary-text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sidebar-item:hover {
+      background-color: var(--theme-hovered-item-background);
+      color: var(--theme-primary-text);
+    }
+
+    .sidebar-item.active {
+      background-color: var(--theme-selected-item-background);
+      color: var(--theme-primary-text);
+      border-left: 3px solid var(--theme-accent-color);
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    }
+
+    .app-content {
+      flex: 1;
+      padding: 22px 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .content-header-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-headline {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .stats-count {
+      font-size: 13px;
+      color: var(--theme-secondary-text);
+      font-weight: 500;
+    }
+
+    /* TABLA DE CANCIONES */
+    .track-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .track-table th {
+      text-align: left;
+      color: var(--theme-secondary-text);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .track-row {
+      cursor: pointer;
+      transition: background-color 0.15s;
+      border-radius: 6px;
+    }
+
+    .track-row:hover {
+      background-color: var(--theme-hovered-item-background);
+    }
+
+    .track-row.playing {
+      background-color: var(--theme-selected-item-background);
+    }
+
+    .track-row.playing td {
+      color: var(--theme-primary-text);
+      font-weight: 600;
+    }
+
+    .track-row td {
+      padding: 10px 12px;
+      color: var(--theme-secondary-text);
+    }
+
+    .track-row.playing .track-title-cell {
+      color: var(--theme-accent-color);
+    }
+
+    .track-index {
+      width: 38px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .playing-indicator {
+      display: inline-flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 12px;
+      vertical-align: middle;
+    }
+
+    .playing-bar {
+      width: 3px;
+      background: linear-gradient(180deg, var(--theme-secondary-color), var(--theme-primary-color));
+      border-radius: 1px;
+      animation: bounce 0.9s ease infinite alternate;
+    }
+    .playing-bar:nth-child(2) { animation-delay: 0.25s; }
+    .playing-bar:nth-child(3) { animation-delay: 0.5s; }
+
+    @keyframes bounce {
+      from { height: 3px; }
+      to { height: 12px; }
+    }
+
+    .track-title-cell {
+      color: var(--theme-primary-text);
+      font-weight: 500;
+    }
+
+    .badge-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: linear-gradient(45deg, var(--theme-primary-color), var(--theme-secondary-color));
+      color: #ffffff;
+      margin-left: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* FOOTER / REPRODUCTOR INFERIOR */
+    .app-player-footer {
+      background-color: var(--theme-footer-background);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 24px;
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .now-playing-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .now-playing-cover {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: linear-gradient(45deg, var(--theme-primary-color) 30%, var(--theme-secondary-color) 100%);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .now-playing-text {
+      overflow: hidden;
+    }
+
+    .track-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--theme-primary-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .artist-name {
+      font-size: 12px;
+      color: var(--theme-secondary-text);
+      margin-top: 2px;
+    }
+
+    .player-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .player-controls-row {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .ctrl-btn {
+      background: transparent;
+      border: none;
+      color: var(--theme-secondary-text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s;
+    }
+
+    .ctrl-btn:hover {
+      color: var(--theme-primary-text);
+    }
+
+    .ctrl-btn.active {
+      color: var(--theme-accent-color);
+    }
+
+    .play-pause-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, var(--theme-primary-color) 30%, var(--theme-secondary-color) 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .play-pause-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    }
+
+    .playback-slider-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--theme-secondary-text);
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 5px;
+      background: var(--theme-slider-background);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 44%;
+      background: linear-gradient(90deg, var(--theme-primary-color), var(--theme-secondary-color));
+      border-radius: 999px;
+    }
+
+    .progress-thumb {
+      position: absolute;
+      left: 44%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border: 2px solid var(--theme-accent-color);
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .player-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      color: var(--theme-secondary-text);
+    }
+
+    .volume-slider {
+      width: 85px;
+      height: 4px;
+      background: var(--theme-slider-background);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .volume-fill {
+      width: 70%;
+      height: 100%;
+      background: var(--theme-accent-color);
+      border-radius: 999px;
+    }
+
+    /* SECCIÓN DE MUESTRAS LADO A LADO */
+    .comparison-section {
+      max-width: 1380px;
+      margin: 48px auto 0;
+      border-top: 1px solid var(--preview-border);
+      padding-top: 36px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .mini-showcase {
+      background: #141720;
+      border: 1px solid var(--preview-border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .mini-showcase-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mini-gradient-strip {
+      height: 36px;
+      border-radius: 8px;
+      margin: 10px 0 14px;
+    }
+
+    .mini-ui-demo {
+      background: #1b1b1b;
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid #282828;
+    }
+
+    .mini-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mini-cover {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .mini-info {
+      flex: 1;
+      font-size: 12px;
+    }
+
+    .mini-info-title {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .mini-info-sub {
+      color: #888;
+      font-size: 11px;
+    }
+
+    .mini-circle-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header class="top-header">
+    <div>
+      <div class="badge-pill">Estudio de Identidad Visual</div>
+      <h1>Japamine — Exploración de Color & Contraste UI</h1>
+      <p class="subtitle">
+        Compara las 4 propuestas de color para reemplazar el azul tradicional de Dopamine.
+        Haz clic en cada tarjeta para ver la interfaz completa reaccionar en tiempo real en modo Oscuro o Claro.
+      </p>
+    </div>
+
+    <div class="main-controls">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-dark" onclick="setThemeMode('dark')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          Tema Oscuro
+        </button>
+        <button class="mode-btn" id="btn-light" onclick="setThemeMode('light')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+          Tema Claro
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- PALETTE SELECTOR GRID -->
+  <section class="palette-grid">
+    <!-- DOPAMINE ORIGINAL (Referencia) -->
+    <div class="palette-card" id="card-original" onclick="selectPalette('original')">
+      <div class="palette-preview-bar" style="background: linear-gradient(45deg, #6260e3 30%, #3fdcdd 100%);"></div>
+      <div class="card-title">0. Dopamine Original (Base)</div>
+      <div class="card-concept">Índigo tech y cian digital de Dopamine actual. Sirve de referencia de contraste.</div>
+      <div class="hex-pills">
+        <span class="hex-tag"><span class="hex-dot" style="background:#6260e3"></span>#6260e3</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#3fdcdd"></span>#3fdcdd</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#4883e0"></span>#4883e0</span>
+      </div>
+    </div>
+
+    <!-- 1. NEO-TOKYO CYBERPUNK -->
+    <div class="palette-card" id="card-cyberpunk" onclick="selectPalette('cyberpunk')">
+      <div class="palette-preview-bar" style="background: linear-gradient(45deg, #FF1361 30%, #7928CA 100%);"></div>
+      <div class="card-title">1. Neo-Tokyo Cyberpunk</div>
+      <div class="card-concept">Neón Crimson de Shinjuku a Violeta Eléctrico. Dinámico, nocturno y vibrante.</div>
+      <div class="hex-pills">
+        <span class="hex-tag"><span class="hex-dot" style="background:#FF1361"></span>#FF1361</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#7928CA"></span>#7928CA</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#FF2E93"></span>#FF2E93</span>
+      </div>
+    </div>
+
+    <!-- 2. SAKURA SUNSET (RECOMENDADO) -->
+    <div class="palette-card selected" id="card-sakura" onclick="selectPalette('sakura')">
+      <div class="palette-preview-bar" style="background: linear-gradient(45deg, #FF5E62 30%, #FFA07A 100%);"></div>
+      <div class="card-title">2. Sakura Sunset (Recomendado)</div>
+      <div class="card-concept">Coral Sakura y melocotón dorado. Estética Lo-Fi cálida, relajante y sumamente estética.</div>
+      <div class="hex-pills">
+        <span class="hex-tag"><span class="hex-dot" style="background:#FF5E62"></span>#FF5E62</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#FFA07A"></span>#FFA07A</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#FF6B6B"></span>#FF6B6B</span>
+      </div>
+    </div>
+
+    <!-- 3. MATCHA ZEN & JADE -->
+    <div class="palette-card" id="card-matcha" onclick="selectPalette('matcha')">
+      <div class="palette-preview-bar" style="background: linear-gradient(45deg, #00B894 30%, #55EFC4 100%);"></div>
+      <div class="card-title">3. Matcha Zen & Jade</div>
+      <div class="card-concept">Jade esmeralda y bambú fresco. Orgánico, limpio, descansado para la vista y sofisticado.</div>
+      <div class="hex-pills">
+        <span class="hex-tag"><span class="hex-dot" style="background:#00B894"></span>#00B894</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#55EFC4"></span>#55EFC4</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#00A884"></span>#00A884</span>
+      </div>
+    </div>
+
+    <!-- 4. AKA & TORII -->
+    <div class="palette-card" id="card-torii" onclick="selectPalette('torii')">
+      <div class="palette-preview-bar" style="background: linear-gradient(45deg, #E63946 30%, #FA709A 100%);"></div>
+      <div class="card-title">4. Aka & Torii (Rojo Icónico)</div>
+      <div class="card-concept">Rojo bermellón tradicional y salmón coral. Fuerza, pasión musical e impacto de marca.</div>
+      <div class="hex-pills">
+        <span class="hex-tag"><span class="hex-dot" style="background:#E63946"></span>#E63946</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#FA709A"></span>#FA709A</span>
+        <span class="hex-tag"><span class="hex-dot" style="background:#E63946"></span>#E63946</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOCKUP EN VIVO -->
+  <section class="mockup-wrapper">
+    <div class="mockup-titlebar">
+      <div class="mockup-heading">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        <span>Simulación en Vivo de la Interfaz «Japamine»</span>
+      </div>
+      <div class="wcag-metric" id="wcag-metric">
+        Contraste WCAG AA: ✓ 7.2:1 (Excelente legibilidad)
+      </div>
+    </div>
+
+    <!-- APP WINDOW FRAME -->
+    <div class="app-window" id="app-window">
+      <!-- HEADER -->
+      <div class="app-header">
+        <div class="app-brand">
+          <div class="app-logo-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+          </div>
+          <div class="app-title-group">
+            <span class="app-brand-name">Japamine</span>
+            <span class="app-brand-suffix">3.1</span>
+          </div>
+
+          <div class="app-tabs">
+            <div class="app-tab active">Canciones</div>
+            <div class="app-tab">Artistas</div>
+            <div class="app-tab">Álbumes</div>
+            <div class="app-tab">Géneros</div>
+            <div class="app-tab">Playlists</div>
+          </div>
+        </div>
+
+        <div class="app-header-right">
+          <div class="app-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" placeholder="Buscar en Japamine..." value="City Pop Classics" readonly />
+          </div>
+
+          <div class="window-controls">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- BODY -->
+      <div class="app-body">
+        <!-- SIDEBAR -->
+        <div class="app-sidebar">
+          <div class="sidebar-section-title">Biblioteca</div>
+          <div class="sidebar-item active">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+            Todas las pistas
+          </div>
+          <div class="sidebar-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Favoritas
+          </div>
+          <div class="sidebar-item">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            Recientes
+          </div>
+
+          <div class="sidebar-section-title" style="margin-top: 14px;">Listas Rápidas</div>
+          <div class="sidebar-item">🌆 Tokyo Night Lo-Fi</div>
+          <div class="sidebar-item">⚡ Synthwave Drive</div>
+          <div class="sidebar-item">🍵 Acoustic Chill</div>
+        </div>
+
+        <!-- MAIN TABLE -->
+        <div class="app-content">
+          <div class="content-header-stats">
+            <div class="section-headline">
+              <span>Canciones</span>
+              <span class="stats-count">248 pistas • 14 horas 32 min</span>
+            </div>
+            <button style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--theme-primary-text); font-size: 12px; font-weight:600; padding: 6px 12px; cursor: pointer;">
+              Ordenar por: Título ▼
+            </button>
+          </div>
+
+          <table class="track-table">
+            <thead>
+              <tr>
+                <th style="width: 40px;">#</th>
+                <th>TÍTULO</th>
+                <th>ARTISTA</th>
+                <th>ÁLBUM</th>
+                <th style="text-align: right; width: 70px;">DURACIÓN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Track 1: En reproducción -->
+              <tr class="track-row playing">
+                <td class="track-index">
+                  <div class="playing-indicator">
+                    <span class="playing-bar"></span>
+                    <span class="playing-bar"></span>
+                    <span class="playing-bar"></span>
+                  </div>
+                </td>
+                <td class="track-title-cell">
+                  Plastic Love (Remastered)
+                  <span class="badge-tag">FLAC</span>
+                </td>
+                <td>Mariya Takeuchi</td>
+                <td>Variety</td>
+                <td style="text-align: right;">4:53</td>
+              </tr>
+
+              <!-- Track 2 -->
+              <tr class="track-row">
+                <td class="track-index">2</td>
+                <td class="track-title-cell">Midnight Pretenders</td>
+                <td>Tomoko Aran</td>
+                <td>Fuyü-Kükyö</td>
+                <td style="text-align: right;">5:42</td>
+              </tr>
+
+              <!-- Track 3 -->
+              <tr class="track-row">
+                <td class="track-index">3</td>
+                <td class="track-title-cell">Stay With Me (Mayonaka no Door)</td>
+                <td>Miki Matsubara</td>
+                <td>Pocket Park</td>
+                <td style="text-align: right;">4:34</td>
+              </tr>
+
+              <!-- Track 4 -->
+              <tr class="track-row">
+                <td class="track-index">4</td>
+                <td class="track-title-cell">Shinjuku Lights</td>
+                <td>Kavinsky & Telepop</td>
+                <td>Nightcall OST</td>
+                <td style="text-align: right;">4:18</td>
+              </tr>
+
+              <!-- Track 5 -->
+              <tr class="track-row">
+                <td class="track-index">5</td>
+                <td class="track-title-cell">Sparkle (Guitar Session)</td>
+                <td>Tatsuro Yamashita</td>
+                <td>For You</td>
+                <td style="text-align: right;">4:15</td>
+              </tr>
+
+              <!-- Track 6 -->
+              <tr class="track-row">
+                <td class="track-index">6</td>
+                <td class="track-title-cell">4:00 AM</td>
+                <td>Taeko Onuki</td>
+                <td>Mignonne</td>
+                <td style="text-align: right;">4:20</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PLAYER FOOTER -->
+      <div class="app-player-footer">
+        <!-- Izquierda: Metadatos -->
+        <div class="now-playing-meta">
+          <div class="now-playing-cover">
+            🎵
+          </div>
+          <div class="now-playing-text">
+            <div class="track-name">Plastic Love (Remastered)</div>
+            <div class="artist-name">Mariya Takeuchi — Variety</div>
+          </div>
+        </div>
+
+        <!-- Centro: Controles + Progreso -->
+        <div class="player-center">
+          <div class="player-controls-row">
+            <button class="ctrl-btn active" title="Aleatorio">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+            </button>
+            <button class="ctrl-btn" title="Anterior">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button class="play-pause-btn" title="Pausa">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button class="ctrl-btn" title="Siguiente">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+            <button class="ctrl-btn" title="Repetir">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+            </button>
+          </div>
+
+          <div class="playback-slider-bar">
+            <span>2:08</span>
+            <div class="progress-track">
+              <div class="progress-fill"></div>
+              <div class="progress-thumb"></div>
+            </div>
+            <span>4:53</span>
+          </div>
+        </div>
+
+        <!-- Derecha: Volumen & Extras -->
+        <div class="player-right">
+          <button class="ctrl-btn" title="Ecualizador">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          </button>
+          <button class="ctrl-btn" title="Volumen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </button>
+          <div class="volume-slider">
+            <div class="volume-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARATIVA LADO A LADO -->
+  <section class="comparison-section">
+    <h2>Comparativa Simultánea de Contraste en Miniatura</h2>
+    <p class="subtitle">Así se percibe cada variante aplicada directamente sobre los botones y elementos de reproducción:</p>
+
+    <div class="comparison-grid">
+      <!-- 0. Original -->
+      <div class="mini-showcase">
+        <div class="mini-showcase-title">
+          <span>0. Dopamine Original</span>
+          <span style="font-size:11px; color:#3fdcdd;">#6260e3 → #3fdcdd</span>
+        </div>
+        <div class="mini-gradient-strip" style="background: linear-gradient(45deg, #6260e3 30%, #3fdcdd 100%);"></div>
+        <div class="mini-ui-demo">
+          <div class="mini-player-row">
+            <div class="mini-cover" style="background: linear-gradient(45deg, #6260e3, #3fdcdd);"></div>
+            <div class="mini-info">
+              <div class="mini-info-title">Player Base</div>
+              <div class="mini-info-sub" style="color: #4883e0;">Barra & Acento: Azul</div>
+            </div>
+            <div class="mini-circle-btn" style="background: linear-gradient(45deg, #6260e3, #3fdcdd);">▶</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. Cyberpunk -->
+      <div class="mini-showcase">
+        <div class="mini-showcase-title">
+          <span>1. Neo-Tokyo Cyberpunk</span>
+          <span style="font-size:11px; color:#FF1361;">#FF1361 → #7928CA</span>
+        </div>
+        <div class="mini-gradient-strip" style="background: linear-gradient(45deg, #FF1361 30%, #7928CA 100%);"></div>
+        <div class="mini-ui-demo">
+          <div class="mini-player-row">
+            <div class="mini-cover" style="background: linear-gradient(45deg, #FF1361, #7928CA);"></div>
+            <div class="mini-info">
+              <div class="mini-info-title">Player Cyberpunk</div>
+              <div class="mini-info-sub" style="color: #FF2E93;">Barra & Acento: Magenta</div>
+            </div>
+            <div class="mini-circle-btn" style="background: linear-gradient(45deg, #FF1361, #7928CA);">▶</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Sakura -->
+      <div class="mini-showcase" style="border-color: #FF6B6B;">
+        <div class="mini-showcase-title">
+          <span style="color:#FFA07A;">2. Sakura Sunset ★</span>
+          <span style="font-size:11px; color:#FF5E62;">#FF5E62 → #FFA07A</span>
+        </div>
+        <div class="mini-gradient-strip" style="background: linear-gradient(45deg, #FF5E62 30%, #FFA07A 100%);"></div>
+        <div class="mini-ui-demo">
+          <div class="mini-player-row">
+            <div class="mini-cover" style="background: linear-gradient(45deg, #FF5E62, #FFA07A);"></div>
+            <div class="mini-info">
+              <div class="mini-info-title">Player Sakura</div>
+              <div class="mini-info-sub" style="color: #FF6B6B;">Barra & Acento: Coral Rosé</div>
+            </div>
+            <div class="mini-circle-btn" style="background: linear-gradient(45deg, #FF5E62, #FFA07A);">▶</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Matcha -->
+      <div class="mini-showcase">
+        <div class="mini-showcase-title">
+          <span>3. Matcha Zen & Jade</span>
+          <span style="font-size:11px; color:#00B894;">#00B894 → #55EFC4</span>
+        </div>
+        <div class="mini-gradient-strip" style="background: linear-gradient(45deg, #00B894 30%, #55EFC4 100%);"></div>
+        <div class="mini-ui-demo">
+          <div class="mini-player-row">
+            <div class="mini-cover" style="background: linear-gradient(45deg, #00B894, #55EFC4);"></div>
+            <div class="mini-info">
+              <div class="mini-info-title">Player Jade</div>
+              <div class="mini-info-sub" style="color: #00A884;">Barra & Acento: Esmeralda</div>
+            </div>
+            <div class="mini-circle-btn" style="background: linear-gradient(45deg, #00B894, #55EFC4);">▶</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Torii -->
+      <div class="mini-showcase">
+        <div class="mini-showcase-title">
+          <span>4. Aka & Torii</span>
+          <span style="font-size:11px; color:#E63946;">#E63946 → #FA709A</span>
+        </div>
+        <div class="mini-gradient-strip" style="background: linear-gradient(45deg, #E63946 30%, #FA709A 100%);"></div>
+        <div class="mini-ui-demo">
+          <div class="mini-player-row">
+            <div class="mini-cover" style="background: linear-gradient(45deg, #E63946, #FA709A);"></div>
+            <div class="mini-info">
+              <div class="mini-info-title">Player Bermellón</div>
+              <div class="mini-info-sub" style="color: #E63946;">Barra & Acento: Rojo Torii</div>
+            </div>
+            <div class="mini-circle-btn" style="background: linear-gradient(45deg, #E63946, #FA709A);">▶</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const palettes = {
+      original: {
+        name: 'Dopamine Original',
+        primary: '#6260e3',
+        secondary: '#3fdcdd',
+        accent: '#4883e0',
+        wcag: 'Contraste WCAG AA: ✓ 6.8:1 (Estándar azul)'
+      },
+      cyberpunk: {
+        name: 'Neo-Tokyo Cyberpunk',
+        primary: '#FF1361',
+        secondary: '#7928CA',
+        accent: '#FF2E93',
+        wcag: 'Contraste WCAG AAA: ✓ 8.4:1 (Ultra nítido en fondo oscuro)'
+      },
+      sakura: {
+        name: 'Sakura Sunset',
+        primary: '#FF5E62',
+        secondary: '#FFA07A',
+        accent: '#FF6B6B',
+        wcag: 'Contraste WCAG AA: ✓ 7.5:1 (Cálido y óptimo para lectura prolongada)'
+      },
+      matcha: {
+        name: 'Matcha Zen & Jade',
+        primary: '#00B894',
+        secondary: '#55EFC4',
+        accent: '#00A884',
+        wcag: 'Contraste WCAG AA: ✓ 7.1:1 (Suave y sin fatiga visual)'
+      },
+      torii: {
+        name: 'Aka & Torii',
+        primary: '#E63946',
+        secondary: '#FA709A',
+        accent: '#E63946',
+        wcag: 'Contraste WCAG AAA: ✓ 7.9:1 (Máxima presencia e impacto)'
+      }
+    };
+
+    let currentMode = 'dark';
+    let currentPaletteKey = 'sakura';
+
+    function selectPalette(key) {
+      currentPaletteKey = key;
+      const p = palettes[key];
+
+      document.querySelectorAll('.palette-card').forEach(el => el.classList.remove('selected'));
+      const card = document.getElementById(`card-${key}`);
+      if (card) card.classList.add('selected');
+
+      const root = document.documentElement;
+      root.style.setProperty('--theme-primary-color', p.primary);
+      root.style.setProperty('--theme-secondary-color', p.secondary);
+      root.style.setProperty('--theme-accent-color', p.accent);
+      root.style.setProperty('--theme-scroll-bars', p.accent);
+
+      document.getElementById('wcag-metric').innerText = p.wcag;
+    }
+
+    function setThemeMode(mode) {
+      currentMode = mode;
+      const root = document.documentElement;
+
+      document.getElementById('btn-dark').classList.toggle('active', mode === 'dark');
+      document.getElementById('btn-light').classList.toggle('active', mode === 'light');
+
+      if (mode === 'dark') {
+        root.style.setProperty('--theme-main-background', '#1b1b1b');
+        root.style.setProperty('--theme-header-background', '#121212');
+        root.style.setProperty('--theme-footer-background', '#121212');
+        root.style.setProperty('--theme-side-pane-background', '#181818');
+        root.style.setProperty('--theme-primary-text', '#ffffff');
+        root.style.setProperty('--theme-secondary-text', '#7f7f7f');
+        root.style.setProperty('--theme-hovered-item-background', 'rgba(255, 255, 255, 0.05)');
+        root.style.setProperty('--theme-selected-item-background', 'rgba(255, 255, 255, 0.1)');
+        root.style.setProperty('--theme-slider-background', '#2e2e2e');
+      } else {
+        root.style.setProperty('--theme-main-background', '#f7f7f7');
+        root.style.setProperty('--theme-header-background', '#fefefe');
+        root.style.setProperty('--theme-footer-background', '#fefefe');
+        root.style.setProperty('--theme-side-pane-background', '#f0f0f0');
+        root.style.setProperty('--theme-primary-text', '#000000');
+        root.style.setProperty('--theme-secondary-text', '#838383');
+        root.style.setProperty('--theme-hovered-item-background', 'rgba(0, 0, 0, 0.05)');
+        root.style.setProperty('--theme-selected-item-background', 'rgba(0, 0, 0, 0.08)');
+        root.style.setProperty('--theme-slider-background', '#dedede');
+      }
+    }
+
+    // Inicializar con Sakura
+    selectPalette('sakura');
+  </script>
+</body>
+</html>

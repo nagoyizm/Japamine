@@ -37,6 +37,10 @@ export class TrackModel implements ISelectable {
         return this.track.trackNumber ?? 0;
     }
 
+    public get trackNumber(): number {
+        return this.number;
+    }
+
     public get discNumber(): number {
         return this.track.discNumber ?? 0;
     }

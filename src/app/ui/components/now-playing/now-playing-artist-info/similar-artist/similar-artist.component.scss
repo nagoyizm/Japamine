@@ -30,8 +30,8 @@
 
 .similar-artist__picture--name {
     display: flex;
-    justify-content: start;
-    align-items: end;
+    justify-content: flex-start;
+    align-items: flex-end;
     padding: 2px 4px;
     background: linear-gradient(to bottom, transparent 60%, #000000cc 100%);
 }

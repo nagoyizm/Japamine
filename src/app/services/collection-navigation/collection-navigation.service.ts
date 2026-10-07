@@ -3,7 +3,7 @@ import { SettingsBase } from '../../common/settings/settings.base';
 
 @Injectable({ providedIn: 'root' })
 export class CollectionNavigationService {
-    public constructor(private settings: SettingsBase) {}
+    public constructor(private readonly settings: SettingsBase) {}
 
     public get page(): number {
         this.updatePageInSettings();
@@ -16,12 +16,12 @@ export class CollectionNavigationService {
 
     public hasVisiblePages(): boolean {
         return (
+            this.settings.showFoldersPage ||
             this.settings.showArtistsPage ||
             this.settings.showGenresPage ||
             this.settings.showAlbumsPage ||
             this.settings.showTracksPage ||
-            this.settings.showPlaylistsPage ||
-            this.settings.showFoldersPage
+            this.settings.showPlaylistsPage
         );
     }
 
@@ -30,32 +30,32 @@ export class CollectionNavigationService {
             return;
         }
 
-        if (this.settings.showArtistsPage) {
+        if (this.settings.showFoldersPage) {
             this.settings.selectedCollectionPage = 0;
             return;
         }
 
-        if (this.settings.showGenresPage) {
+        if (this.settings.showArtistsPage) {
             this.settings.selectedCollectionPage = 1;
             return;
         }
 
-        if (this.settings.showAlbumsPage) {
+        if (this.settings.showGenresPage) {
             this.settings.selectedCollectionPage = 2;
             return;
         }
 
-        if (this.settings.showTracksPage) {
+        if (this.settings.showAlbumsPage) {
             this.settings.selectedCollectionPage = 3;
             return;
         }
 
-        if (this.settings.showPlaylistsPage) {
+        if (this.settings.showTracksPage) {
             this.settings.selectedCollectionPage = 4;
             return;
         }
 
-        if (this.settings.showFoldersPage) {
+        if (this.settings.showPlaylistsPage) {
             this.settings.selectedCollectionPage = 5;
             return;
         }
@@ -66,17 +66,17 @@ export class CollectionNavigationService {
     private isPageShown(page: number): boolean {
         switch (page) {
             case 0:
-                return this.settings.showArtistsPage;
-            case 1:
-                return this.settings.showGenresPage;
-            case 2:
-                return this.settings.showAlbumsPage;
-            case 3:
-                return this.settings.showTracksPage;
-            case 4:
-                return this.settings.showPlaylistsPage;
-            case 5:
                 return this.settings.showFoldersPage;
+            case 1:
+                return this.settings.showArtistsPage;
+            case 2:
+                return this.settings.showGenresPage;
+            case 3:
+                return this.settings.showAlbumsPage;
+            case 4:
+                return this.settings.showTracksPage;
+            case 5:
+                return this.settings.showPlaylistsPage;
             default:
                 return false;
         }

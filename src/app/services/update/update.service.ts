@@ -33,7 +33,7 @@ export class UpdateService implements UpdateServiceBase {
             try {
                 const currentRelease: string = ProductInformation.applicationVersion;
                 const latestRelease: string = await this.gitHub.getLatestReleaseAsync(
-                    'digimezzo',
+                    'nagoyizm',
                     ProductInformation.applicationName.toLowerCase(),
                     this.settings.checkForUpdatesIncludesPreReleases,
                 );
@@ -66,7 +66,7 @@ export class UpdateService implements UpdateServiceBase {
 
     public async downloadLatestReleaseAsync(): Promise<void> {
         await this.desktop.openLinkAsync(
-            `https://github.com/digimezzo/${ProductInformation.applicationName.toLowerCase()}/releases/tag/v${this.latestRelease}`,
+            `https://github.com/nagoyizm/${ProductInformation.applicationName.toLowerCase()}/releases/tag/v${this.latestRelease}`,
         );
     }
 }

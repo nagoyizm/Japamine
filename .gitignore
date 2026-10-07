@@ -14,3 +14,4 @@ main/common/application/*.js
 main/common/application/*.js.map
 main/common/settings/*.js
 main/common/settings/*.js.map
+*.lnk

@@ -11,6 +11,7 @@
 /* eslint-disable @typescript-eslint/ban-types */
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, nativeTheme, protocol, screen, Tray } from 'electron';
 import log from 'electron-log';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { Worker } from 'worker_threads';
@@ -21,8 +22,19 @@ import { DiscordApiCommandType } from './main/api/discord/discord-api-command-ty
 import { SettingsStore } from './main/common/settings/settings-store';
 
 /**
+ * Preserve existing user data and music collection from Dopamine
+ */
+app.name = 'Japamine';
+
+const legacyDopaminePath = path.join(app.getPath('appData'), 'Dopamine');
+if (fs.existsSync(legacyDopaminePath)) {
+    app.setPath('userData', legacyDopaminePath);
+}
+
+/**
  * Command line parameters
  */
+app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-color-correct-rendering'); // Prevents incorrect color rendering
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required'); // Prevents requiring user interaction to play audio
 app.commandLine.appendSwitch('disable-http-cache'); // Disables clearing of the cache folder at each startup
@@ -36,7 +48,7 @@ const settings = new SettingsStore();
  * Logging
  */
 log.create('main');
-log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'Dopamine.log');
+log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'Japamine.log');
 
 // Prevent EPIPE crashes when stdout/stderr pipe is closed (e.g. launched from file manager on Linux)
 process.stdout?.on?.('error', () => {});
@@ -267,7 +279,13 @@ function setInitialWindowState(mainWindow: BrowserWindow): void {
         }
 
         const isCoverPlayer = settings.get('playerType') === 'cover';
+        const isMiniPlayer = settings.get('playerType') === 'mini';
         let windowState = normalizedFullState.normalized;
+
+        if (isMiniPlayer) {
+            setMiniPlayer(mainWindow);
+            return;
+        }
 
         if (isCoverPlayer) {
             const parsedCoverState = parseCoverPlayerWindowState(settings.get('coverPlayerPosition'));
@@ -321,7 +339,7 @@ function setInitialWindowState(mainWindow: BrowserWindow): void {
 
 function createMainWindow(): void {
     // Set custom AppUserModelID to ensure the app name shows up in Windows media controls
-    app.setAppUserModelId('com.digimezzo.dopamine');
+    app.setAppUserModelId('com.nagoyizm.japamine');
 
     // Suppress the default menu
     Menu.setApplicationMenu(null);
@@ -331,6 +349,7 @@ function createMainWindow(): void {
 
     // Create the browser window
     mainWindow = new BrowserWindow({
+        title: 'Japamine',
         backgroundColor: '#fff',
         frame: windowHasFrame(),
         titleBarStyle: titleBarStyle(),
@@ -385,6 +404,7 @@ function createMainWindow(): void {
 
         hasShownMainWindow = true;
         log.info(`[Main] [showMainWindow] Showing main window (trigger: ${reason})`);
+        mainWindow.setTitle('Japamine');
         mainWindow.show();
         mainWindow.focus();
     };
@@ -436,6 +456,7 @@ function createMainWindow(): void {
                 if (isQuit) {
                     mainWindow.webContents.send('application-close');
                     isQuitting = true;
+                    setTimeout(() => app.quit(), 2500);
                 }
                 // on MacOS, close button never closed entire app
                 else if (isMacOS()) {
@@ -445,6 +466,7 @@ function createMainWindow(): void {
                 } else {
                     mainWindow.webContents.send('application-close');
                     isQuitting = true;
+                    setTimeout(() => app.quit(), 2500);
                 }
             }
         }
@@ -462,6 +484,8 @@ function createMainWindow(): void {
                     settings.set('fullPlayerPositionSizeMaximized', `${position[0]};${position[1]};${size[0]};${size[1]};${isMaximized}`);
                 } else if (settings.get('playerType') === 'cover') {
                     settings.set('coverPlayerPosition', `${position[0]};${position[1]};350;430`);
+                } else if (settings.get('playerType') === 'mini') {
+                    settings.set('miniPlayerPosition', `${position[0]};${position[1]};${size[0]};${size[1]}`);
                 }
             }
         }, 300),
@@ -479,6 +503,8 @@ function createMainWindow(): void {
                     settings.set('fullPlayerPositionSizeMaximized', `${position[0]};${position[1]};${size[0]};${size[1]};${isMaximized}`);
                 } else if (settings.get('playerType') === 'cover') {
                     settings.set('coverPlayerPosition', `${position[0]};${position[1]}`);
+                } else if (settings.get('playerType') === 'mini') {
+                    settings.set('miniPlayerPosition', `${position[0]};${position[1]};${size[0]};${size[1]}`);
                 }
             }
         }, 300),
@@ -547,6 +573,37 @@ function setCoverPlayer(mainWindow: BrowserWindow): void {
     mainWindow.setMinimumSize(normalizedCoverState.normalized.width, normalizedCoverState.normalized.height);
     mainWindow.setPosition(normalizedCoverState.normalized.x, normalizedCoverState.normalized.y);
     mainWindow.setContentSize(normalizedCoverState.normalized.width, normalizedCoverState.normalized.height);
+}
+
+function setMiniPlayer(mainWindow: BrowserWindow): void {
+    settings.set('playerType', 'mini');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: sw, height: sh } = primaryDisplay.workAreaSize;
+
+    let defaultX = Math.max(50, sw - 420);
+    let defaultY = Math.max(50, sh - 700);
+    let defaultW = 380;
+    let defaultH = 650;
+
+    const saved = settings.get('miniPlayerPosition');
+    if (saved && typeof saved === 'string') {
+        const parts = saved.split(';').map(Number);
+        if (parts.length >= 4 && parts.every((n) => Number.isFinite(n))) {
+            defaultX = parts[0];
+            defaultY = parts[1];
+            defaultW = parts[2];
+            defaultH = parts[3];
+        }
+    }
+
+    if (isMacOS()) {
+        mainWindow.fullScreenable = false;
+    }
+    mainWindow.resizable = true;
+    mainWindow.maximizable = false;
+    mainWindow.setMinimumSize(320, 480);
+    mainWindow.setPosition(defaultX, defaultY);
+    mainWindow.setSize(defaultW, defaultH);
 }
 
 function pushFilesToQueue(files: string[], functionName: string): void {
@@ -646,7 +703,25 @@ try {
 
             if (shouldShowIconInNotificationArea()) {
                 tray = new Tray(getTrayIcon());
-                tray.setToolTip('Dopamine');
+                tray.setToolTip('Japamine');
+                const defaultContextMenu = Menu.buildFromTemplate([
+                    {
+                        label: 'Japamine',
+                        click(): void {
+                            if (mainWindow) {
+                                mainWindow.show();
+                                mainWindow.focus();
+                            }
+                        },
+                    },
+                    {
+                        label: 'Salir / Exit',
+                        click(): void {
+                            app.quit();
+                        },
+                    },
+                ]);
+                tray.setContextMenu(defaultContextMenu);
             }
         });
 
@@ -724,6 +799,7 @@ try {
 
         ipcMain.on('set-full-player', (event: any, arg: any) => {
             log.info('[Main] [set-full-player] Setting playerType to full player');
+            settings.set('playerType', 'full');
             if (mainWindow) {
                 mainWindow.setAlwaysOnTop(false);
                 const parsedFullState = parseFullPlayerWindowState(settings.get('fullPlayerPositionSizeMaximized'));
@@ -789,6 +865,35 @@ try {
                 mainWindow.unmaximize();
                 setCoverPlayer(mainWindow);
                 mainWindow.setAlwaysOnTop(settings.get('miniPlayerAlwaysOnTop'));
+            }
+        });
+
+        ipcMain.on('set-mini-player', (event: any, arg: any) => {
+            log.info('[Main] [set-mini-player] Setting playerType to mini player');
+            if (mainWindow) {
+                if (isMacOS() && mainWindow.isFullScreen()) {
+                    mainWindow.fullScreenable = true;
+                    mainWindow.fullScreen = false;
+                    return;
+                }
+
+                if (mainWindow.isMaximized()) {
+                    const normalBounds = mainWindow.getNormalBounds();
+                    settings.set(
+                        'fullPlayerPositionSizeMaximized',
+                        serializeFullPlayerWindowState({
+                            x: normalBounds.x,
+                            y: normalBounds.y,
+                            width: normalBounds.width,
+                            height: normalBounds.height,
+                            isMaximized: 1,
+                        }),
+                    );
+                }
+
+                mainWindow.unmaximize();
+                setMiniPlayer(mainWindow);
+                mainWindow.setAlwaysOnTop(settings.get('miniPlayerAlwaysOnTop') ?? false);
             }
         });
 
@@ -887,8 +992,91 @@ try {
             }
         });
 
+        // ======================================================
+        // Mini Player IPC Handlers
+        // ======================================================
+        let miniPlayerWindow: BrowserWindow | undefined;
+
+        ipcMain.on('open-mini-player', () => {
+            if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
+                miniPlayerWindow.focus();
+                return;
+            }
+
+            log.info('[Main] [open-mini-player] Opening mini player window');
+
+            if (mainWindow) {
+                mainWindow.hide();
+            }
+
+            const primaryDisplay = screen.getPrimaryDisplay();
+            const { width: sw, height: sh } = primaryDisplay.workAreaSize;
+
+            miniPlayerWindow = new BrowserWindow({
+                width: 380,
+                height: 580,
+                minWidth: 300,
+                minHeight: 420,
+                x: sw - 400,
+                y: sh - 620,
+                frame: false,
+                transparent: false,
+                alwaysOnTop: true,
+                resizable: true,
+                maximizable: false,
+                fullscreenable: false,
+                title: 'Mini Reproductor',
+                backgroundColor: '#111',
+                webPreferences: {
+                    nodeIntegration: true,
+                    contextIsolation: false,
+                    webSecurity: false,
+                },
+            });
+
+            const remoteMain = require('@electron/remote/main');
+            remoteMain.enable(miniPlayerWindow.webContents);
+
+            if (isServing) {
+                miniPlayerWindow.loadURL('http://localhost:4200/#/mini-player');
+            } else {
+                miniPlayerWindow.loadURL(
+                    url.format({
+                        pathname: path.join(__dirname, 'dist/index.html'),
+                        protocol: 'file:',
+                        slashes: true,
+                        hash: '/mini-player',
+                    }),
+                );
+            }
+
+            miniPlayerWindow.on('closed', () => {
+                miniPlayerWindow = undefined;
+                // Restore main window when mini is closed by X button
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+            });
+        });
+
+        ipcMain.on('close-mini-player', () => {
+            log.info('[Main] [close-mini-player] Closing mini player, restoring main window');
+
+            if (miniPlayerWindow && !miniPlayerWindow.isDestroyed()) {
+                miniPlayerWindow.destroy();
+                miniPlayerWindow = undefined;
+            }
+
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.show();
+                mainWindow.focus();
+            }
+        });
+
         ipcMain.handle('settings:getAll', () => settings.getAll());
         ipcMain.handle('settings:set', (_, key: string, value: any) => settings.set(key, value));
+
     }
 } catch (e) {
     log.error(`[Main] [Main] Could not start. Error: ${e.message}`);

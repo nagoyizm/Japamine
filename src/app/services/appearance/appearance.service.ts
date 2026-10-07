@@ -191,6 +191,9 @@ export class AppearanceService implements AppearanceServiceBase {
         this.ensureThemesDirectoryExists();
         this.ensureDefaultThemesExist();
         this._themes = this.getThemesFromThemesDirectory();
+        if (this.settings.theme === 'Dopamine' || !this.settings.theme) {
+            this.settings.theme = 'Japamine';
+        }
         this.setSelectedThemeFromSettings();
 
         this.setSelectedFontSizeFromSettings();
@@ -264,7 +267,7 @@ export class AppearanceService implements AppearanceServiceBase {
             await this.applyThemeAsync();
         } catch (e: unknown) {
             this.selectedTheme.isBroken = true;
-            this.settings.theme = 'Dopamine';
+            this.settings.theme = 'Japamine';
             this.setSelectedThemeFromSettings();
             await this.applyThemeAsync();
 
@@ -404,7 +407,7 @@ export class AppearanceService implements AppearanceServiceBase {
         let themeFromSettings: Theme | undefined = this.themes.find((x) => x.name === this.settings.theme);
 
         if (themeFromSettings == undefined) {
-            themeFromSettings = this.themes.find((x) => x.name === 'Dopamine');
+            themeFromSettings = this.themes.find((x) => x.name === 'Japamine') ?? this.themes.find((x) => x.name === 'Dopamine');
 
             if (themeFromSettings == undefined) {
                 themeFromSettings = this.themes[0];
@@ -478,6 +481,13 @@ export class AppearanceService implements AppearanceServiceBase {
             const defaultThemeWithoutIsBroken = { ...defaultTheme, isBroken: undefined };
             const stringifiedDefaultTheme: string = JSON.stringify(defaultThemeWithoutIsBroken, undefined, 2);
             this.fileAccess.writeToFile(themeFilePath, stringifiedDefaultTheme);
+        }
+
+        const legacyDopamineThemePath = this.fileAccess.combinePath([this.themesDirectoryPath, 'Dopamine.theme']);
+        if (this.fileAccess.pathExists(legacyDopamineThemePath)) {
+            const japamineTheme = defaultThemes[0];
+            const updatedLegacy = { ...japamineTheme, name: 'Dopamine', isBroken: undefined };
+            this.fileAccess.writeToFile(legacyDopamineThemePath, JSON.stringify(updatedLegacy, undefined, 2));
         }
     }
 

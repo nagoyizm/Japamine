@@ -166,7 +166,7 @@ describe('CollectionComponent', () => {
 
         it('should request semantic zoom when a letter is pressed on artists page', () => {
             // Arrange
-            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 0);
+            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 1);
             const keyboardEventMock: IMock<KeyboardEvent> = Mock.ofType<KeyboardEvent>();
             keyboardEventMock.setup((x) => x.type).returns(() => 'keyup');
             keyboardEventMock.setup((x) => x.target).returns(() => document.createElement('div'));
@@ -185,7 +185,7 @@ describe('CollectionComponent', () => {
 
         it('should request semantic zoom when a letter is pressed on genres page', () => {
             // Arrange
-            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 1);
+            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 2);
             const keyboardEventMock: IMock<KeyboardEvent> = Mock.ofType<KeyboardEvent>();
             keyboardEventMock.setup((x) => x.type).returns(() => 'keyup');
             keyboardEventMock.setup((x) => x.target).returns(() => document.createElement('div'));
@@ -204,7 +204,7 @@ describe('CollectionComponent', () => {
 
         it('should not request semantic zoom on pages other than artists and genres', () => {
             // Arrange
-            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 2);
+            collectionNavigationServiceMock.setup((x) => x.page).returns(() => 3);
             const keyboardEventMock: IMock<KeyboardEvent> = Mock.ofType<KeyboardEvent>();
             keyboardEventMock.setup((x) => x.type).returns(() => 'keyup');
             keyboardEventMock.setup((x) => x.target).returns(() => document.createElement('div'));

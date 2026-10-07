@@ -1,15 +1,15 @@
 const { getFullVersion } = require('./get-package-information.js');
 
 const config = {
-    appId: 'com.digimezzo.dopamine',
-    productName: 'Dopamine',
+    appId: 'com.nagoyizm.japamine',
+    productName: 'Japamine',
     snap: {
         base: 'core22', // Must match build server (currently Ubuntu 22.04)
         grade: 'stable',
         confinement: 'strict',
-        summary: 'The audio player that keeps it simple.',
+        summary: 'Japamine audio player',
         description:
-            'Dopamine is an elegant audio player which tries to make organizing and listening to music as simple and pretty as possible.',
+            'Japamine is an elegant audio player based on Dopamine, modified by nagoyizm.',
         plugs: [
             // REQUIRED for Electron desktop apps
             'desktop',
@@ -69,7 +69,7 @@ const config = {
         },
     ],
     nsis: {
-        shortcutName: 'Dopamine 3',
+        shortcutName: 'Japamine',
         perMachine: false,
         oneClick: false,
         deleteAppDataOnUninstall: false,
@@ -78,14 +78,23 @@ const config = {
         include: 'build/uninstaller.nsh',
         installerSidebar: 'build/Sidebar.bmp',
         uninstallerSidebar: 'build/Sidebar.bmp',
+        artifactName: `\${productName}-Setup-${getFullVersion()}.\${ext}`,
+    },
+    portable: {
+        artifactName: `\${productName}-Portable-${getFullVersion()}.\${ext}`,
     },
     directories: {
         output: 'release',
     },
+    publish: {
+        provider: 'github',
+        owner: 'nagoyizm',
+        repo: 'japamine',
+    },
     files: ['**/*'],
     extraResources: ['LICENSE'],
     win: {
-        target: ['nsis'],
+        target: ['nsis', 'portable'],
         artifactName: `\${productName}-${getFullVersion()}.\${ext}`,
     },
     mac: {
@@ -98,9 +107,9 @@ const config = {
         // AudioVideo is required as main category for Audio/Player to be valid (freedesktop menu spec)
         category: 'AudioVideo;Audio;Player;',
         artifactName: `\${productName}-${getFullVersion()}.\${ext}`,
-        synopsis: 'The audio player that keeps it simple.',
+        synopsis: 'Japamine audio player',
         description:
-            'Dopamine is an elegant audio player which tries to make organizing and listening to music as simple and pretty as possible.',
+            'Japamine is an elegant audio player based on Dopamine, modified by nagoyizm.',
     },
     pacman: {
         // Use Arch package names explicitly so Ubuntu-built artifacts

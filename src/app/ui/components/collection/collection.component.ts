@@ -19,8 +19,8 @@ import { SemanticZoomServiceBase } from '../../../services/semantic-zoom/semanti
     animations: [enterLeftToRight, enterRightToLeft],
 })
 export class CollectionComponent extends AnimatedPage implements AfterViewInit {
-    private readonly artistsPage: number = 0;
-    private readonly genresPage: number = 1;
+    private readonly artistsPage: number = 1;
+    private readonly genresPage: number = 2;
 
     public constructor(
         public appearanceService: AppearanceServiceBase,

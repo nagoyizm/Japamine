@@ -114,7 +114,14 @@ export class DiscordApi {
             this._client.clearActivity();
         }
 
-        this._client.destroy();
+        try {
+            const destroyPromise = this._client.destroy();
+            if (destroyPromise && typeof destroyPromise.catch === 'function') {
+                destroyPromise.catch(() => {});
+            }
+        } catch {
+            // Ignore error if transport is not connected
+        }
         log.info('[DiscordApi] [shutdown] Discord client destroyed.');
     }
 }

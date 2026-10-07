@@ -21,6 +21,7 @@ export class TracksFilterPipe implements PipeTransform {
                 track.albumArtists,
                 track.artists,
                 track.fileName,
+                track.path,
                 track.year.toString(),
                 track.genres,
             ].join(' ');

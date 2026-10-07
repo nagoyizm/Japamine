@@ -24,7 +24,12 @@
         </div>
         <div class="app-track__right" [ngClass]="{ compact: this.settings.useCompactTrackListView }">
             <div class="app-track__top" [ngClass]="{ compact: this.settings.useCompactTrackListView }">
-                <span class="app-track__top__title ellipsis" [ngClass]="{ 'accent-color': track.isPlaying }">{{ track.title }}</span>
+                <div class="d-flex flex-row align-items-baseline min-width-0 flex-grow mr-2 overflow-hidden">
+                    <span class="app-track__top__title ellipsis" [ngClass]="{ 'accent-color': track.isPlaying }">{{ track.title }}</span>
+                    <span class="app-track__filename secondary-text ml-2 font-11px ellipsis flex-shrink-1" *ngIf="track.fileName" [title]="track.fileName">
+                        {{ track.fileName }}
+                    </span>
+                </div>
                 <div class="app-track__playback__and__duration" [ngClass]="{ compact: this.settings.useCompactTrackListView }">
                     <app-playback-indicator *ngIf="track.isPlaying" class="mx-2" [isSelected]="track.isSelected"></app-playback-indicator>
                     <div [ngClass]="{ 'accent-color': track.isPlaying }">

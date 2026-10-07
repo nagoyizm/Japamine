@@ -8,20 +8,24 @@ import { Lyrics } from '../../common/api/lyrics/lyrics';
 import { Logger } from '../../common/logger';
 import { ChartLyricsApi } from '../../common/api/lyrics/chart-lyrics.api';
 import { AZLyricsApi } from '../../common/api/lyrics/a-z-lyrics.api';
+import { LrclibApi } from '../../common/api/lyrics/lrclib.api';
 
 describe('OnlineLyricsGetter', () => {
+    let lrclibApiMock: IMock<LrclibApi>;
     let chartLyricsApiMock: IMock<ChartLyricsApi>;
     let azLyricsApiMock: IMock<AZLyricsApi>;
     let loggerMock: IMock<Logger>;
 
     beforeEach(() => {
+        lrclibApiMock = Mock.ofType<LrclibApi>();
+        lrclibApiMock.setup((x) => x.sourceName).returns(() => 'LRCLIB');
         chartLyricsApiMock = Mock.ofType<ChartLyricsApi>();
         azLyricsApiMock = Mock.ofType<AZLyricsApi>();
         loggerMock = Mock.ofType<Logger>();
     });
 
     function createInstance(): OnlineLyricsGetter {
-        return new OnlineLyricsGetter(chartLyricsApiMock.object, azLyricsApiMock.object, loggerMock.object);
+        return new OnlineLyricsGetter(lrclibApiMock.object, chartLyricsApiMock.object, azLyricsApiMock.object, loggerMock.object);
     }
 
     describe('constructor', () => {
@@ -88,6 +92,32 @@ describe('OnlineLyricsGetter', () => {
             expect(lyricsModel.sourceName).toEqual('ChartLyrics source');
             expect(lyricsModel.sourceType).toEqual(LyricsSourceType.online);
             expect(lyricsModel.plainText).toEqual('ChartLyrics text');
+        });
+
+        it('should return synchronized timed lyrics from LRCLIB if available', async () => {
+            // Arrange
+            const track: TrackModel = MockCreator.createTrackModel('path', 'title', 'artists');
+            lrclibApiMock
+                .setup((x) => x.getLyricsAsync(track.rawFirstArtist, track.rawTitle, track.albumTitle, It.isAny()))
+                .returns(() =>
+                    Promise.resolve({
+                        trackName: 'title',
+                        artistName: 'artists',
+                        syncedLyrics: '[00:01.50] Hello world\n[00:04.20] Second line',
+                    }),
+                );
+            const instance: OnlineLyricsGetter = createInstance();
+
+            // Act
+            const lyricsModel: LyricsModel = await instance.getLyricsAsync(track);
+
+            // Assert
+            expect(lyricsModel.track).toEqual(track);
+            expect(lyricsModel.sourceName).toEqual('LRCLIB');
+            expect(lyricsModel.sourceType).toEqual(LyricsSourceType.online);
+            expect(lyricsModel.plainText).toContain('Hello world');
+            expect(lyricsModel.textLines).toEqual(['Hello world', 'Second line']);
+            expect(lyricsModel.startTimeStamps).toEqual([1.5, 4.2]);
         });
 
         it('should return empty lyrics if no online lyrics are availalble', async () => {

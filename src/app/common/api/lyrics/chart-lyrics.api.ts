@@ -9,11 +9,9 @@ import { Lyrics } from './lyrics';
 
 @Injectable()
 export class ChartLyricsApi implements ILyricsApi {
-    public constructor(private httpClient: HttpClient) {}
+    public readonly sourceName: string = 'ChartLyrics';
 
-    public get sourceName(): string {
-        return 'ChartLyrics';
-    }
+    public constructor(private readonly httpClient: HttpClient) {}
 
     public async getLyricsAsync(artist: string, title: string): Promise<Lyrics> {
         const url: string = `http://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist=${artist}&song=${title}`;
@@ -21,6 +19,11 @@ export class ChartLyricsApi implements ILyricsApi {
         const parser: XMLParser = new XMLParser();
         const jsonResponse: any = parser.parse(response);
 
-        return new Lyrics(this.sourceName, jsonResponse.GetLyricResult.Lyric as string);
+        const lyricSong = jsonResponse.GetLyricResult.LyricSong as string | undefined;
+        const lyricArtist = jsonResponse.GetLyricResult.LyricArtist as string | undefined;
+        const matchedSong = lyricSong !== undefined && lyricSong !== '' ? lyricSong : title;
+        const matchedArtist = lyricArtist !== undefined && lyricArtist !== '' ? lyricArtist : artist;
+
+        return new Lyrics(this.sourceName, jsonResponse.GetLyricResult.Lyric as string, matchedSong, matchedArtist);
     }
 }

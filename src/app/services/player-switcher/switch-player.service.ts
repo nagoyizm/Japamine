@@ -15,18 +15,18 @@ export class SwitchPlayerService {
 
     public async togglePlayerAsync(): Promise<void> {
         this.logger.info('Switching player', 'SwitchPlayerService', 'togglePlayerAsync');
-        if (this.settings.playerType === 'cover') {
-            this.logger.info('Detected playerType cover.', 'SwitchPlayerService', 'togglePlayerAsync');
+        if (this.settings.playerType === 'mini' || this.settings.playerType === 'cover') {
+            this.logger.info('Detected playerType mini/cover.', 'SwitchPlayerService', 'togglePlayerAsync');
             this.settings.playerType = 'full';
             await this.navigationService.navigateToCollectionAsync();
             this.logger.info('Requesting to set full player.', 'SwitchPlayerService', 'togglePlayerAsync');
             this.ipcProxy.sendToMainProcess('set-full-player', undefined);
         } else {
             this.logger.info('Detected playerType full.', 'SwitchPlayerService', 'togglePlayerAsync');
-            this.settings.playerType = 'cover';
-            await this.navigationService.navigateToCoverPlayerAsync();
-            this.logger.info('Requesting to set cover player.', 'SwitchPlayerService', 'togglePlayerAsync');
-            this.ipcProxy.sendToMainProcess('set-cover-player', undefined);
+            this.settings.playerType = 'mini';
+            await this.navigationService.navigateToMiniPlayerAsync();
+            this.logger.info('Requesting to set mini player.', 'SwitchPlayerService', 'togglePlayerAsync');
+            this.ipcProxy.sendToMainProcess('set-mini-player', undefined);
         }
     }
 }

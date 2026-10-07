@@ -81,7 +81,7 @@ describe('CollectionNavigationService', () => {
             // Arrange
             const service: CollectionNavigationService = createSut();
             settingsMock.setup((x) => x.selectedCollectionPage).returns(() => 2);
-            settingsMock.setup((x) => x.showAlbumsPage).returns(() => true);
+            settingsMock.setup((x) => x.showGenresPage).returns(() => true);
 
             // Act, Assert
             expect(service.page).toEqual(2);
@@ -90,14 +90,15 @@ describe('CollectionNavigationService', () => {
         it('should get first shown page if page from settings is not shown and should update settings', () => {
             // Arrange
             const service: CollectionNavigationService = createSutUsingStub();
-            settingsStub.selectedCollectionPage = 2;
+            settingsStub.selectedCollectionPage = 3;
+            settingsStub.showFoldersPage = false;
             settingsStub.showArtistsPage = false;
             settingsStub.showGenresPage = true;
             settingsStub.showAlbumsPage = false;
 
             // Act, Assert
-            expect(service.page).toEqual(1);
-            expect(settingsStub.selectedCollectionPage).toEqual(1);
+            expect(service.page).toEqual(2);
+            expect(settingsStub.selectedCollectionPage).toEqual(2);
         });
     });
 });

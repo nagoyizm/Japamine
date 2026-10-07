@@ -1,0 +1,200 @@
+<div class="mini-player-root d-flex flex-column h-100 w-100">
+
+    <!-- ─────────────── 1. BARRA SUPERIOR (HEADER / TITLEBAR) ─────────────── -->
+    <div class="mini-title-bar d-flex align-items-center justify-content-between px-3 flex-shrink-0 drag" (mousedown)="onTitleBarMouseDown($event)">
+        <div class="d-flex align-items-center min-width-0 flex-grow-1 mr-2" style="-webkit-app-region: drag; cursor: move;">
+            <i class="las la-music accent-color mr-2 font-14px flex-shrink-0" style="-webkit-app-region: drag;"></i>
+            <span class="mini-folder-name font-12px font-weight-bold ellipsis" style="-webkit-app-region: drag; cursor: move;" [matTooltip]="nowPlayingFolderName || 'Sin carpeta'">
+                {{ nowPlayingFolderName || 'Mini Reproductor' }}
+            </span>
+        </div>
+        <div class="d-flex align-items-center no-drag" style="-webkit-app-region: no-drag;">
+            <!-- Botón pincho para mantener siempre encima de todo -->
+            <button
+                class="mini-btn-restore mr-1"
+                [class.active-pin]="isAlwaysOnTop"
+                [matTooltip]="isAlwaysOnTop ? 'Desactivar siempre encima' : 'Mantener siempre encima'"
+                (click)="toggleAlwaysOnTop()"
+            >
+                <i class="las la-thumbtack font-14px" [class.accent-color]="isAlwaysOnTop"></i>
+            </button>
+            <!-- Botón para volver a la ventana original / completa -->
+            <button class="mini-btn-restore mr-1" matTooltip="Volver a ventana completa" (click)="restoreFullPlayer()">
+                <i class="las la-expand-arrows-alt font-14px"></i>
+            </button>
+            <button class="mini-btn-restore mr-1" matTooltip="Minimizar" (click)="minimizeWindow()">
+                <i class="las la-minus font-14px"></i>
+            </button>
+            <button class="mini-btn-restore mini-btn-close" matTooltip="Cerrar" (click)="closeWindow()">
+                <i class="las la-times font-14px"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ─────────────── 2. ARRIBA: LETRA SINCRONIZADA / KARAOKE ─────────────── -->
+    <div class="mini-lyrics-section flex-grow d-flex flex-column overflow-hidden">
+        <!-- Sub-header de la letra: Título y botón modo Romaji -->
+        <div class="mini-lyrics-header d-flex align-items-center justify-content-between px-3 py-1 flex-shrink-0">
+            <span class="font-10px secondary-text text-uppercase font-weight-bold">
+                <i class="las la-microphone-alt mr-1"></i>Letra / Karaoke
+            </span>
+            <div class="d-flex align-items-center">
+                <button
+                    *ngIf="canAlignWithKaraokero && !hasRichLyrics && hasLyrics"
+                    class="mini-btn-align font-10px px-2 py-0 rounded mr-1"
+                    [disabled]="isAligningLyrics"
+                    (click)="alignCurrentLyricsWithKaraokeroAsync()"
+                    matTooltip="Sincronizar escuchando audio con Karaokero AI"
+                >
+                    <mat-spinner *ngIf="isAligningLyrics" [diameter]="9" class="mr-1"></mat-spinner>
+                    <i *ngIf="!isAligningLyrics" class="las la-magic mr-1"></i>
+                    <span>{{ isAligningLyrics ? 'Alineando...' : 'Alinear AI' }}</span>
+                </button>
+                <button
+                    *ngIf="containsJapaneseLyrics || nowPlayingLyrics?.romanizedLines"
+                    class="mini-btn-mode font-10px px-2 py-0 rounded"
+                    (click)="cycleLyricsTextMode()"
+                    matTooltip="Alternar modo de texto de la letra"
+                >
+                    {{ lyricsTextModeLabel }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Banner de letra encontrada con título y botón de descarte si no corresponde -->
+        <div
+            *ngIf="hasLyrics && !isLyricsLoading && displayedFoundTitle"
+            class="mini-lyrics-found-banner d-flex align-items-center justify-content-between px-3 py-1 flex-shrink-0"
+        >
+            <div class="d-flex align-items-center min-width-0 flex-grow mr-2">
+                <i class="las la-check-circle accent-color font-12px mr-1 flex-shrink-0"></i>
+                <span class="font-10px text-truncate" [matTooltip]="displayedFoundTitle + (displayedFoundArtist ? ' — ' + displayedFoundArtist : '')">
+                    <strong class="mr-1">Encontrada:</strong>{{ displayedFoundTitle }}
+                    <span *ngIf="displayedFoundArtist" class="secondary-text"> — {{ displayedFoundArtist }}</span>
+                </span>
+            </div>
+            <button
+                class="mini-btn-reject font-10px px-1 py-0 rounded pointer d-flex align-items-center flex-shrink-0"
+                (click)="rejectCurrentLyrics()"
+                [matTooltip]="hasNextAlternative ? 'Probar siguiente coincidencia (' + (candidateIndexInfo?.current ? candidateIndexInfo!.current + 1 : 2) + '/' + (candidateIndexInfo?.total ?? '?') + ')' : 'No es esta letra (descartar)'"
+            >
+                <i class="las la-times mr-1"></i>
+                <span>{{ hasNextAlternative ? 'Probar otra' : 'No es' }}</span>
+            </button>
+        </div>
+
+        <!-- Cargando -->
+        <div *ngIf="isLyricsLoading || isRomanizingLyrics" class="h-100 d-flex flex-column align-items-center justify-content-center secondary-text">
+            <mat-spinner [diameter]="22" class="mb-2"></mat-spinner>
+            <span class="font-10px">{{ isRomanizingLyrics ? 'Romanizando letra...' : 'Buscando letra...' }}</span>
+        </div>
+
+        <!-- Letra sincronizada en tiempo real (Karaoke) -->
+        <div
+            *ngIf="!isLyricsLoading && !isRomanizingLyrics && hasRichLyrics"
+            class="mini-synced-lyrics flex-grow overflow-auto px-3"
+            (scroll)="onLyricsScroll()"
+        >
+            <div
+                *ngFor="let line of nowPlayingLyrics?.textLines; let i = index"
+                [id]="'mini-lyric-line-' + i"
+                class="mini-lyric-line pointer"
+                [class.active]="activeLyricIndex === i"
+                [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
+                [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
+                [class.passed]="activeLyricIndex > i"
+                (click)="onLyricLineClickAsync(i)"
+                [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
+            >
+                <div class="mini-lyric-main">{{ getLineMainText(i) }}</div>
+                <div *ngIf="getLineSubText(i)" class="mini-lyric-sub secondary-text">{{ getLineSubText(i) }}</div>
+            </div>
+        </div>
+
+        <!-- Letra en texto plano -->
+        <div
+            *ngIf="!isLyricsLoading && !isRomanizingLyrics && hasLyrics && !hasRichLyrics"
+            class="mini-plain-lyrics flex-grow overflow-auto p-3 font-12px secondary-text"
+        >
+            {{ nowPlayingLyrics?.plainText }}
+        </div>
+
+        <!-- Sin letra disponible -->
+        <div
+            *ngIf="!isLyricsLoading && !isRomanizingLyrics && !hasLyrics && playbackService.currentTrack"
+            class="flex-grow d-flex flex-column align-items-center justify-content-center text-center secondary-text p-3"
+        >
+            <i class="lar la-file-alt font-24px mb-1 opacity-50"></i>
+            <span class="font-11px">Sin letra disponible</span>
+        </div>
+
+        <!-- Sin pista en reproducción -->
+        <div
+            *ngIf="!isLyricsLoading && !playbackService.currentTrack"
+            class="flex-grow d-flex flex-column align-items-center justify-content-center text-center secondary-text p-3"
+        >
+            <i class="las la-music font-24px mb-1 opacity-50"></i>
+            <span class="font-11px">Reproduce una pista para ver la letra</span>
+        </div>
+    </div>
+
+    <!-- ─────────────── 3. AL MEDIO: LISTA DE PISTAS DE LA CARPETA ─────────────── -->
+    <div class="mini-folder-tracks-section flex-shrink-0">
+        <div class="mini-tracks-header px-3 py-1 d-flex align-items-center justify-content-between">
+            <span class="font-10px secondary-text text-uppercase font-weight-bold">
+                <i class="las la-folder-open mr-1"></i>Pistas de la carpeta
+            </span>
+            <span class="font-10px secondary-text">{{ nowPlayingTracks.length }} pistas</span>
+        </div>
+        <div class="mini-tracks-list-container">
+            <div
+                *ngFor="let track of nowPlayingTracks; let idx = index"
+                class="mini-track-item d-flex align-items-center px-3 py-1 pointer"
+                [class.active-track]="track.isPlaying"
+                (click)="onPlayTrackAsync(track)"
+                matRipple
+            >
+                <div class="mini-track-icon-col mr-2 flex-shrink-0">
+                    <i *ngIf="track.isPlaying" class="las la-volume-up accent-color font-12px"></i>
+                    <span *ngIf="!track.isPlaying" class="font-10px secondary-text">{{ track.number || (idx + 1) }}</span>
+                </div>
+                <div class="mini-track-title font-11px ellipsis flex-grow" [class.accent-color]="track.isPlaying" [class.font-weight-bold]="track.isPlaying">
+                    {{ track.title || track.fileName }}
+                </div>
+                <div class="mini-track-dur font-10px secondary-text ml-2 flex-shrink-0">
+                    {{ track.durationInMilliseconds | formatTrackDuration }}
+                </div>
+            </div>
+            <div *ngIf="nowPlayingTracks.length === 0" class="d-flex align-items-center justify-content-center p-3 secondary-text font-10px">
+                Sin pistas en esta carpeta
+            </div>
+        </div>
+    </div>
+
+    <!-- ─────────────── 4. ABAJO: CANCIÓN EN REPRODUCCIÓN Y CONTROLES ─────────────── -->
+    <div class="mini-playback-section flex-shrink-0 px-3 py-2">
+        <!-- Barra de progreso interactiva -->
+        <app-playback-progress class="mini-progress-bar w-100 d-block"></app-playback-progress>
+
+        <div class="d-flex align-items-center justify-content-between mt-1">
+            <!-- Mini carátula + Info de pista -->
+            <div class="d-flex align-items-center min-width-0 flex-grow mr-2">
+                <app-playback-cover-art class="mini-cover-art flex-shrink-0 mr-2" [size]="40"></app-playback-cover-art>
+                <div class="min-width-0">
+                    <div class="mini-now-title font-12px font-weight-bold ellipsis" [matTooltip]="playbackService.currentTrack?.title || playbackService.currentTrack?.fileName || ''">
+                        {{ playbackService.currentTrack?.title || playbackService.currentTrack?.fileName || 'Sin reproducción' }}
+                    </div>
+                    <div class="mini-now-artist font-10px secondary-text ellipsis" [matTooltip]="playbackService.currentTrack?.artists || ''">
+                        {{ playbackService.currentTrack?.artists || 'Desconocido' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles de reproducción -->
+            <div class="mini-controls-wrap flex-shrink-0">
+                <app-playback-controls [canCompact]="true"></app-playback-controls>
+            </div>
+        </div>
+    </div>
+
+</div>

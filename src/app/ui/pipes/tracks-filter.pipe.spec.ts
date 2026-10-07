@@ -98,9 +98,9 @@ describe('TracksFilterPipe', () => {
 
             // Assert
             const expectedTextToSearchTrack1 =
-                'title1 album1 album_artist1_1, album_artist1_2 artist1_1, artist1_2 file1.mp3 2001 genre1_1, genre1_2';
+                'title1 album1 album_artist1_1, album_artist1_2 artist1_1, artist1_2 file1.mp3 /path1/file1.mp3 2001 genre1_1, genre1_2';
             const expectedTextToSearchTrack2 =
-                'title2 album2 album_artist2_1, album_artist2_2 artist2_1, artist2_2 file2.mp3 2002 genre2_1, genre2_2';
+                'title2 album2 album_artist2_1, album_artist2_2 artist2_1, artist2_2 file2.mp3 /path2/file2.mp3 2002 genre2_1, genre2_2';
 
             searchServiceMock.verify((x) => x.matchesSearchText(expectedTextToSearchTrack1, 'dummy'), Times.once());
             searchServiceMock.verify((x) => x.matchesSearchText(expectedTextToSearchTrack2, 'dummy'), Times.once());

@@ -1,88 +1,777 @@
 <div class="collection-viewport">
-    <as-split gutterSize="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)" #split="asSplit">
-        <as-split-area [size]="leftPaneSize" minSize="5" maxSize="95">
-            <div class="left-side-pane">
-                <div class="h-100 d-flex flex-column p-3">
-                    <div class="folder-row" *ngIf="this.folderService.collectionHasFolders">
-                        <div class="folder__column1">{{ 'folder' | translate }}</div>
-                        <div
-                            class="folder__column2"
-                            [matMenuTriggerFor]="menu"
-                            matTooltip="{{ 'choose-folder' | translate }}"
-                            (click)="getFolders()"
-                        >
-                            <div class="folder-inner-row pointer">
-                                <div class="folder-inner-row__text secondary-text">{{ openedFolder | folderName }}</div>
-                                <div class="folder-inner-row__chevron"><i class="ml-1 las la-angle-down secondary-text"></i></div>
-                            </div>
-                        </div>
-                        <mat-menu #menu="matMenu">
-                            <button mat-menu-item *ngFor="let folder of folders" (click)="setOpenedFolderAsync(folder)">
-                                <div class="folder-selector-item ellipsis">
-                                    {{ folder | folderName }}
-                                </div>
-                            </button>
-                        </mat-menu>
-                    </div>
-                    <cdk-virtual-scroll-viewport *ngIf="folders.length > 0" class="mt-3 folder-browser__list" itemSize="30">
-                        <div
-                            *cdkVirtualFor="let subfolder of subfolders | subfoldersFilter: this.searchService.delayedSearchText"
-                            matRipple
-                            (mousedown)="setSelectedSubfolder(subfolder)"
-                            (dblclick)="setOpenedSubfolderAsync(subfolder)"
-                            (contextmenu)="onSubfolderContextMenu($event, subfolder)"
-                        >
-                            <div
-                                class="subfolder d-flex flex-row align-items-center flex-grow p-1"
-                                [ngClass]="{ 'selected-item-background-important': subfolder === selectedSubfolder }"
-                            >
-                                <i *ngIf="!subfolder.isPlaying" class="font-18px rotate-90ccw mr-2 lar la-folder accent-color"></i>
-                                <app-playback-indicator
-                                    *ngIf="subfolder.isPlaying"
-                                    class="ml-1 mr-2"
-                                    [isSelected]="subfolder === selectedSubfolder"
-                                ></app-playback-indicator>
-                                <div
-                                    class="flex-grow ellipsis"
-                                    matTooltip="{{ subfolder.path }}"
-                                    [ngClass]="{ 'accent-color': subfolder.isPlaying }"
-                                >
-                                    {{ subfolder | subfolderName }}
-                                </div>
-                            </div>
-                        </div>
-                    </cdk-virtual-scroll-viewport>
-                    <!-- No folders in collection -->
+    <as-split [gutterSize]="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)" #split="asSplit">
+        
+        <!-- ======================================================== -->
+        <!-- COLUMNA 1 (Izquierda): Búsqueda, Más Reproducidas, Árbol -->
+        <!-- ======================================================== -->
+        <as-split-area [size]="leftPaneSize" [minSize]="15" [maxSize]="40">
+            <div class="left-side-pane h-100 d-flex flex-column p-2 overflow-hidden">
+                <!-- 1. Barra de búsqueda posicionada ARRIBA de donde dice Carpetas -->
+                <div class="folder-search-box-wrapper mb-2">
+                    <app-search-box></app-search-box>
+                </div>
+
+                <!-- 2. Título "Carpetas" y selector de carpeta raíz -->
+                <div class="folder-row align-items-center mb-2 px-1" *ngIf="this.folderService.collectionHasFolders">
+                    <div class="folder__column1 font-weight-bold font-13px">{{ 'folders' | translate }}</div>
                     <div
-                        class="d-flex flex-column h-100 align-items-center justify-content-center"
-                        *ngIf="!this.folderService.collectionHasFolders"
+                        class="folder__column2"
+                        [matMenuTriggerFor]="menu"
+                        matTooltip="{{ 'choose-folder' | translate }}"
+                        (click)="getFolders()"
                     >
-                        {{ 'no-folders-in-collection' | translate }}
-                        <app-accent-button class="mt-3" (click)="goToManageCollectionAsync()">
-                            {{ 'add-folder' | translate }}
-                        </app-accent-button>
+                        <div class="folder-inner-row pointer">
+                            <div class="folder-inner-row__text secondary-text font-12px">{{ openedFolder | folderName }}</div>
+                            <div class="folder-inner-row__chevron"><i class="ml-1 las la-angle-down secondary-text"></i></div>
+                        </div>
                     </div>
+                    <mat-menu #menu="matMenu">
+                        <button mat-menu-item *ngFor="let folder of folders" (click)="setOpenedFolderAsync(folder)">
+                            <div class="folder-selector-item ellipsis">
+                                {{ folder | folderName }}
+                            </div>
+                        </button>
+                    </mat-menu>
+                </div>
+
+                <!-- 3. Sección "Más reproducidas": abajo de Carpetas, solo texto (5 carpetas) -->
+                <div *ngIf="!this.isSearchActive && this.topPlayedFolders.length > 0" class="top-played-list-section mb-3">
+                    <div
+                        class="top-played-header d-flex align-items-center justify-content-between mb-1 px-1 pointer user-select-none"
+                        (click)="toggleTopPlayedFolders()"
+                        matTooltip="Clic para contraer o expandir"
+                    >
+                        <div class="d-flex align-items-center">
+                            <i class="las la-fire accent-color font-14px mr-1"></i>
+                            <span class="secondary-text font-weight-bold font-11px text-uppercase">Más reproducidas</span>
+                        </div>
+                        <i class="las font-13px secondary-text" [ngClass]="isTopPlayedFoldersCollapsed ? 'la-angle-down' : 'la-angle-up'"></i>
+                    </div>
+                    <div *ngIf="!isTopPlayedFoldersCollapsed" class="top-played-list d-flex flex-column">
+                        <div
+                            *ngFor="let top of this.topPlayedFolders; let i = index"
+                            class="top-played-item d-flex align-items-center px-2 py-1 pointer rounded"
+                            (click)="navigateToPathAsync(top.path)"
+                            matTooltip="{{ top.path }}"
+                            matRipple
+                        >
+                            <span class="top-played-rank font-11px accent-color font-weight-bold mr-2">{{ i + 1 }}</span>
+                            <i class="lar la-folder mr-2 font-13px secondary-text"></i>
+                            <span class="top-played-name flex-grow ellipsis font-12px">{{ top.name }}</span>
+                            <span class="top-played-badge font-10px secondary-text ml-1">{{ top.playCount }}</span>
+                            <button
+                                class="top-played-hover-play ml-1 d-flex align-items-center justify-content-center"
+                                matTooltip="Reproducir"
+                                (click)="onPlayFolderAsync(top.path, $event)"
+                            >
+                                <i class="las la-play font-10px"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Árbol Jerárquico de Carpetas con desplazamiento físico a la derecha -->
+                <div *ngIf="folders.length > 0" class="folder-tree__container flex-grow overflow-auto">
+                    <div class="secondary-text font-weight-bold font-11px mb-1 px-1 text-uppercase">
+                        Explorador
+                    </div>
+                    <div
+                        *ngFor="let node of this.visibleTreeNodes"
+                        class="tree-node d-flex flex-row align-items-center pointer position-relative"
+                        [ngClass]="{ 'selected-item-background-important': node.isSelected }"
+                        (click)="onTreeNodeClickAsync(node)"
+                        (contextmenu)="onSubfolderContextMenu($event, node)"
+                        matRipple
+                    >
+                        <!-- Espaciador de indentación: 24px físicos por cada nivel de profundidad -->
+                        <div
+                            class="tree-indent-spacer d-flex flex-row"
+                            [style.width.px]="node.level * 24"
+                            [style.min-width.px]="node.level * 24"
+                            style="flex-shrink: 0;"
+                        >
+                            <!-- Guías verticales para conectar visualmente padres e hijos -->
+                            <span
+                                *ngFor="let g of getIndentGuides(node.level)"
+                                class="tree-guide-line"
+                                [style.left.px]="g * 24 + 11"
+                            ></span>
+                            <!-- Conector horizontal hacia el nodo hijo -->
+                            <span
+                                *ngIf="node.level > 0"
+                                class="tree-guide-branch"
+                                [style.left.px]="(node.level - 1) * 24 + 11"
+                                [style.width.px]="13"
+                            ></span>
+                        </div>
+
+                        <!-- Flecha para desplegar u ocultar -->
+                        <span
+                            *ngIf="node.hasChildren"
+                            class="tree-toggle-arrow d-flex align-items-center justify-content-center mr-1"
+                            (click)="toggleNodeExpandAsync(node, $event)"
+                        >
+                            <i class="las font-13px" [ngClass]="node.isExpanded ? 'la-angle-down' : 'la-angle-right'"></i>
+                        </span>
+                        <span *ngIf="!node.hasChildren" class="tree-toggle-spacer mr-1"></span>
+
+                        <!-- Icono o indicador de reproducción -->
+                        <app-playback-indicator
+                            *ngIf="node.isPlaying"
+                            class="mr-2"
+                            [isSelected]="node.isSelected"
+                        ></app-playback-indicator>
+                        <i
+                            *ngIf="!node.isPlaying"
+                            class="mr-2 font-16px"
+                            [ngClass]="[
+                                node.isRoot
+                                    ? 'las la-hdd accent-color'
+                                    : node.isExpanded
+                                    ? 'lar la-folder-open accent-color'
+                                    : 'lar la-folder secondary-text'
+                            ]"
+                        ></i>
+
+                        <!-- Nombre de la carpeta -->
+                        <span
+                            class="flex-grow ellipsis tree-node-name"
+                            [ngClass]="{ 'accent-color': node.isPlaying, 'font-weight-bold': node.isRoot || node.isSelected }"
+                            matTooltip="{{ node.path }}"
+                        >
+                            {{ node.name }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Estado sin carpetas en la colección -->
+                <div
+                    class="d-flex flex-column h-100 align-items-center justify-content-center"
+                    *ngIf="!this.folderService.collectionHasFolders"
+                >
+                    {{ 'no-folders-in-collection' | translate }}
+                    <app-accent-button class="mt-3" (click)="goToManageCollectionAsync()">
+                        {{ 'add-folder' | translate }}
+                    </app-accent-button>
                 </div>
             </div>
         </as-split-area>
-        <as-split-area [size]="rightPaneSize" minSize="5" maxSize="95">
-            <div class="h-100 d-flex flex-column p-3">
-                <div class="d-flex flex-row flex-wrap mb-3">
+
+        <!-- ======================================================== -->
+        <!-- COLUMNA 2 (Medio): Contenido de la Carpeta Seleccionada  -->
+        <!-- ======================================================== -->
+        <as-split-area [size]="middlePaneSize" [minSize]="25">
+            <div class="h-100 d-flex flex-column p-3 overflow-hidden">
+                <!-- Banner cuando la búsqueda está activa -->
+                <div
+                    *ngIf="this.isSearchActive"
+                    class="search-banner p-2 mb-3 d-flex align-items-center justify-content-between rounded flex-shrink-0"
+                >
+                    <div class="d-flex align-items-center">
+                        <i class="las la-search accent-color mr-2 font-18px"></i>
+                        <span>
+                            Búsqueda en todas las carpetas: <strong>{{ this.searchService.delayedSearchText }}</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Breadcrumbs / Ubicación y Botón Volver -->
+                <div *ngIf="!this.isSearchActive" class="d-flex flex-row flex-wrap mb-2 align-items-center flex-shrink-0">
+                    <button
+                        *ngIf="canGoBack"
+                        class="btn-go-back-inline mr-2 d-flex align-items-center px-2 py-1 rounded pointer"
+                        (click)="goToParentFolderAsync()"
+                        matTooltip="Volver a {{ parentFolderName }}"
+                    >
+                        <i class="las la-arrow-left mr-1"></i>
+                        <span class="font-12px font-weight-bold">Volver</span>
+                    </button>
+                    <span class="secondary-text font-12px mr-2 d-flex align-items-center">
+                        <i class="las la-compass mr-1"></i> Ubicación:
+                    </span>
                     <app-transparent-button
-                        class="mr-2 mb-2 fit-width"
+                        class="mr-2 mb-1 fit-width"
                         *ngFor="let subfolderBreadcrumb of subfolderBreadcrumbs"
                         (click)="setOpenedSubfolderAsync(subfolderBreadcrumb)"
                     >
                         {{ subfolderBreadcrumb | subfolderName }}
                     </app-transparent-button>
                 </div>
-                <app-track-browser
-                    class="fill"
-                    [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
-                    [(tracksPersister)]="this.tracksPersister"
-                    [trackOrders]="this.trackOrders"
-                    scrollPositionKey="folders-tracks"
-                ></app-track-browser>
+
+                <!-- Cuando hay subcarpetas: Divisor vertical móvil entre Carpetas y Canciones -->
+                <as-split
+                    *ngIf="!this.isSearchActive && this.subfolderCards.length > 0"
+                    class="middle-column-split flex-grow overflow-hidden"
+                    [gutterSize]="10"
+                    unit="percent"
+                    direction="vertical"
+                    (dragEnd)="middleVerticalSplitDragEnd($event)"
+                >
+                    <!-- MÓDULO 1: Carpetas -->
+                    <as-split-area [size]="middleFoldersPaneSize" [minSize]="15">
+                        <div class="h-100 d-flex flex-column overflow-hidden pb-1">
+                            <div class="secondary-text mb-2 font-weight-bold font-12px d-flex align-items-center justify-content-between flex-shrink-0">
+                                <div class="d-flex align-items-center">
+                                    <i class="lar la-folder mr-1"></i>
+                                    <span>Carpetas ({{ this.subfolderCards.length }})</span>
+                                </div>
+                                <button
+                                    *ngIf="canGoBack"
+                                    class="btn-text-action font-11px accent-color d-flex align-items-center pointer"
+                                    (click)="goToParentFolderAsync()"
+                                >
+                                    <i class="las la-level-up-alt mr-1"></i> Volver a {{ parentFolderName }}
+                                </button>
+                            </div>
+
+                            <div class="subfolder-cards-grid-container flex-grow overflow-auto pr-1">
+                                <div class="subfolder-cards-grid">
+                                    <!-- Tarjeta para volver a la carpeta anterior -->
+                                    <div
+                                        *ngIf="canGoBack"
+                                        class="subfolder-card subfolder-card--parent pointer p-2"
+                                        (click)="goToParentFolderAsync()"
+                                        matTooltip="Volver a {{ parentFolderName }}"
+                                        matRipple
+                                    >
+                                        <div class="subfolder-card__art-container d-flex align-items-center justify-content-center">
+                                            <i class="las la-level-up-alt font-32px accent-color"></i>
+                                        </div>
+                                        <div class="subfolder-card__details mt-2">
+                                            <div class="subfolder-card__title ellipsis font-12px font-weight-bold">
+                                                ..
+                                            </div>
+                                            <div class="subfolder-card__subtitle font-11px secondary-text ellipsis">
+                                                Volver a {{ parentFolderName }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tarjetas de subcarpetas normales -->
+                                    <div
+                                        *ngFor="let card of this.subfolderCards"
+                                        class="subfolder-card pointer p-2"
+                                        (click)="onOpenSubfolderCardAsync(card)"
+                                        (contextmenu)="onSubfolderContextMenu($event, card)"
+                                        matTooltip="{{ card.path }}"
+                                        matRipple
+                                    >
+                                        <div class="subfolder-card__art-container position-relative">
+                                            <img
+                                                *ngIf="card.artworkUrl"
+                                                [src]="card.artworkUrl"
+                                                class="subfolder-card__art rounded"
+                                            />
+                                            <div
+                                                *ngIf="!card.artworkUrl"
+                                                class="subfolder-card__placeholder rounded d-flex align-items-center justify-content-center"
+                                            >
+                                                <i class="lar la-folder font-32px accent-color"></i>
+                                            </div>
+                                            <button
+                                                class="subfolder-card__play-btn position-absolute"
+                                                matTooltip="Reproducir carpeta"
+                                                (click)="onPlayFolderAsync(card.path, $event)"
+                                            >
+                                                <i class="las la-play font-16px"></i>
+                                            </button>
+                                        </div>
+                                        <div class="subfolder-card__details mt-2">
+                                            <div class="subfolder-card__title ellipsis font-12px font-weight-bold">
+                                                {{ card | subfolderName }}
+                                            </div>
+                                            <div class="subfolder-card__subtitle font-11px secondary-text ellipsis">
+                                                {{ card.artist || (card.trackCount ? (card.trackCount + ' pistas') : '') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </as-split-area>
+
+                    <!-- MÓDULO 2: Contenido de la carpeta en canciones -->
+                    <as-split-area [size]="middleTracksPaneSize" [minSize]="15">
+                        <div class="h-100 d-flex flex-column overflow-hidden pt-1">
+                            <app-track-browser
+                                class="track-browser-fill flex-grow d-flex flex-column overflow-hidden"
+                                [tracks]="this.displayedTracks | tracksFilter: this.searchService.delayedSearchText"
+                                [tracksPersister]="this.tracksPersister"
+                                [trackOrders]="this.trackOrders"
+                                scrollPositionKey="folders-tracks"
+                            ></app-track-browser>
+                        </div>
+                    </as-split-area>
+                </as-split>
+
+                <!-- Cuando no hay subcarpetas o está en búsqueda (carpeta hoja / leaf): Toda la altura para canciones -->
+                <div *ngIf="this.isSearchActive || this.subfolderCards.length === 0" class="flex-grow d-flex flex-column overflow-hidden">
+                    <!-- Botón Volver cuando es una carpeta final sin subcarpetas -->
+                    <div *ngIf="!this.isSearchActive && canGoBack && this.subfolderCards.length === 0" class="leaf-back-container mb-2 flex-shrink-0">
+                        <button
+                             class="btn-leaf-back d-flex align-items-center px-3 py-2 rounded pointer"
+                            (click)="goToParentFolderAsync()"
+                            matTooltip="Subir un nivel hacia {{ parentFolderName }}"
+                            matRipple
+                        >
+                            <i class="las la-level-up-alt accent-color font-16px mr-2"></i>
+                            <span class="font-12px font-weight-bold">.. Volver a {{ parentFolderName }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Navegador de pistas de la carpeta seleccionada -->
+                    <app-track-browser
+                        class="track-browser-fill flex-grow d-flex flex-column overflow-hidden"
+                        [tracks]="this.displayedTracks | tracksFilter: this.searchService.delayedSearchText"
+                        [tracksPersister]="this.tracksPersister"
+                        [trackOrders]="this.trackOrders"
+                        scrollPositionKey="folders-tracks"
+                    ></app-track-browser>
+                </div>
+            </div>
+        </as-split-area>
+
+        <!-- ========================================================================= -->
+        <!-- COLUMNA 3 (Derecha): Partida por la mitad verticalmente                   -->
+        <!-- Espacio 1 (Superior): Carpeta y pistas en reproducción                    -->
+        <!-- Espacio 2 (Inferior): Letra de la canción si se encuentra                -->
+        <!-- ========================================================================= -->
+        <as-split-area [size]="nowPlayingPaneSize" [minSize]="18" [maxSize]="45">
+            <div class="now-playing-pane h-100 d-flex flex-column overflow-hidden">
+                <as-split [gutterSize]="4" unit="percent" direction="vertical">
+                    <!-- MITAD SUPERIOR (Espacio 1): Carpeta en Reproducción y Pistas -->
+                    <as-split-area [size]="50" [minSize]="25">
+                        <div class="h-100 d-flex flex-column p-3 overflow-hidden">
+                            <!-- Encabezado de Columna 3 -->
+                            <div class="now-playing-pane__header d-flex align-items-center justify-content-between mb-2 flex-shrink-0">
+                                <div class="d-flex align-items-center">
+                                    <i class="las la-volume-up accent-color font-16px mr-2"></i>
+                                    <span class="font-weight-bold font-12px">En reproducción</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <!-- Botón Mini Reproductor -->
+                                    <button
+                                        class="btn-mini-player"
+                                        matTooltip="Abrir mini reproductor"
+                                        (click)="openMiniPlayer()"
+                                    >
+                                        <i class="las la-compress-arrows-alt"></i>
+                                        <span>Mini</span>
+                                    </button>
+                                    <span class="badge-now-playing font-10px px-2 py-1 rounded" *ngIf="this.nowPlayingFolderPath">
+                                        Carpeta activa
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Estado Activo: Tarjeta de la carpeta en reproducción -->
+                            <div *ngIf="this.nowPlayingFolderPath" class="now-playing-folder-card mb-2 p-2 rounded d-flex flex-column flex-shrink-0">
+                                <div class="d-flex flex-row align-items-center mb-2">
+                                    <div class="now-playing-art-wrapper mr-2 rounded overflow-hidden flex-shrink-0">
+                                        <img
+                                            *ngIf="this.nowPlayingArtworkUrl"
+                                            [src]="this.nowPlayingArtworkUrl"
+                                            class="now-playing-art"
+                                        />
+                                        <div
+                                            *ngIf="!this.nowPlayingArtworkUrl"
+                                            class="now-playing-art-placeholder d-flex align-items-center justify-content-center"
+                                        >
+                                            <i class="lar la-folder font-24px accent-color"></i>
+                                        </div>
+                                    </div>
+                                    <div class="now-playing-info min-width-0 flex-grow">
+                                        <div class="now-playing-folder-title font-weight-bold font-13px ellipsis" [title]="this.nowPlayingFolderName">
+                                            {{ this.nowPlayingFolderName }}
+                                        </div>
+                                        <div class="now-playing-artist secondary-text font-11px ellipsis" *ngIf="this.nowPlayingArtist">
+                                            {{ this.nowPlayingArtist }}
+                                        </div>
+                                        <div class="now-playing-count secondary-text font-10px">
+                                            {{ this.nowPlayingTrackCount }} {{ this.nowPlayingTrackCount === 1 ? 'pista' : 'pistas' }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Botones de acción rápida -->
+                                <div class="d-flex flex-row align-items-center justify-content-end gap-1 mt-1">
+                                    <button
+                                        class="action-btn-mini d-flex align-items-center mr-1"
+                                        matTooltip="Navegar a esta carpeta en el explorador"
+                                        (click)="goToNowPlayingFolderAsync()"
+                                    >
+                                        <i class="las la-compass mr-1"></i> Ir a carpeta
+                                    </button>
+                                    <button
+                                        class="action-btn-mini action-btn-play d-flex align-items-center"
+                                        matTooltip="Reproducir carpeta completa"
+                                        (click)="playNowPlayingFolderAsync()"
+                                    >
+                                        <i class="las la-play mr-1"></i> Reproducir todo
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lista de canciones de la carpeta en reproducción -->
+                            <div *ngIf="this.nowPlayingFolderPath" class="now-playing-tracks-wrapper flex-grow d-flex flex-column overflow-hidden">
+                                <div class="secondary-text font-weight-bold font-11px mb-2 px-1 text-uppercase flex-shrink-0">
+                                    Pistas en esta carpeta
+                                </div>
+                                <div class="now-playing-tracks-list flex-grow overflow-auto pr-1">
+                                    <div
+                                        *ngFor="let track of this.nowPlayingTracks; let idx = index"
+                                        class="now-playing-track-row d-flex align-items-center p-2 rounded pointer mb-1"
+                                        [ngClass]="{ 'active-playing-track': track.isPlaying }"
+                                        (click)="onPlayNowPlayingTrackAsync(track)"
+                                        matRipple
+                                    >
+                                        <!-- Indicador animado si está sonando o número de pista -->
+                                        <div class="track-indicator-box d-flex align-items-center justify-content-center mr-2 flex-shrink-0">
+                                            <app-playback-indicator *ngIf="track.isPlaying"></app-playback-indicator>
+                                            <span *ngIf="!track.isPlaying" class="track-number-label secondary-text font-11px">
+                                                {{ track.number || (idx + 1) }}
+                                            </span>
+                                        </div>
+
+                                        <!-- Título, nombre de archivo en grisaceo y artista -->
+                                        <div class="track-text-box flex-grow min-width-0 mr-2">
+                                            <div class="d-flex flex-row align-items-baseline min-width-0 overflow-hidden">
+                                                <span
+                                                    class="track-title-text ellipsis font-12px"
+                                                    [ngClass]="{ 'accent-color font-weight-bold': track.isPlaying }"
+                                                    [title]="track.title"
+                                                >
+                                                    {{ track.title }}
+                                                </span>
+                                                <span
+                                                    class="track-filename-mini secondary-text font-10px ml-1 ellipsis flex-shrink-1"
+                                                    *ngIf="track.fileName"
+                                                    [title]="track.fileName"
+                                                >
+                                                    ({{ track.fileName }})
+                                                </span>
+                                            </div>
+                                            <div class="track-artist-text secondary-text font-11px ellipsis" *ngIf="track.artists">
+                                                {{ track.artists }}
+                                            </div>
+                                        </div>
+
+                                        <!-- Duración -->
+                                        <div class="track-duration-box secondary-text font-11px flex-shrink-0 mr-1">
+                                            {{ track.durationInMilliseconds | formatTrackDuration }}
+                                        </div>
+
+                                        <!-- Botón de reproducir al pasar el cursor -->
+                                        <button
+                                            class="track-play-hover-btn d-flex align-items-center justify-content-center flex-shrink-0"
+                                            matTooltip="Reproducir"
+                                            (click)="onPlayNowPlayingTrackAsync(track); $event.stopPropagation()"
+                                        >
+                                            <i class="las la-play font-11px"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Estado Vacío: Cuando no hay reproducción activa -->
+                            <div
+                                *ngIf="!this.nowPlayingFolderPath"
+                                class="d-flex flex-column h-100 align-items-center justify-content-center text-center p-3 secondary-text"
+                            >
+                                <i class="las la-compact-disc font-48px accent-color mb-3 opacity-60"></i>
+                                <div class="font-weight-bold font-13px mb-1">Sin reproducción activa</div>
+                                <div class="font-11px secondary-text" style="max-width: 220px; line-height: 1.4;">
+                                    Al reproducir una canción, aquí se mantendrán visibles permanentemente la carpeta y todos los archivos que la acompañan.
+                                </div>
+                            </div>
+                        </div>
+                    </as-split-area>
+
+                    <!-- MITAD INFERIOR (Espacio 2): Letra de la Canción si se encuentra -->
+                    <as-split-area [size]="50" [minSize]="25">
+                        <div class="lyrics-pane h-100 d-flex flex-column p-3 overflow-hidden">
+                            <!-- Encabezado de la Letra -->
+                            <div class="lyrics-header d-flex align-items-center justify-content-between mb-2 flex-shrink-0">
+                                <div class="d-flex align-items-center min-width-0">
+                                    <i class="las la-microphone-alt accent-color font-16px mr-2"></i>
+                                    <span class="font-weight-bold font-12px">Letra</span>
+                                    <span class="badge-lyrics-source font-10px px-1 rounded ml-2" *ngIf="lyricsSourceLabel">
+                                        {{ lyricsSourceLabel }}
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center" *ngIf="playbackService.currentTrack">
+                                    <!-- Selector Modo Romaji / Ambos / Original -->
+                                    <button
+                                        *ngIf="containsJapaneseLyrics || nowPlayingLyrics?.romanizedLines"
+                                        class="btn-romaji-toggle font-10px px-2 py-1 rounded pointer mr-1"
+                                        (click)="cycleLyricsTextMode()"
+                                        matTooltip="Modo de texto: {{ lyricsTextModeLabel }} (Clic para alternar Romaji / Ambos / Original)"
+                                    >
+                                        <i class="las la-language mr-1"></i>
+                                        <span>{{ lyricsTextModeLabel }}</span>
+                                    </button>
+
+                                    <!-- Alternar modo si tiene letra sincronizada -->
+                                    <button
+                                        *ngIf="hasRichLyrics"
+                                        class="btn-lyrics-toggle font-10px px-2 py-1 rounded pointer mr-1"
+                                        [ngClass]="{ active: showRichLyrics }"
+                                        (click)="toggleLyricsMode()"
+                                        matTooltip="Alternar entre modo sincronizado y texto completo"
+                                    >
+                                        {{ showRichLyrics ? 'Sincronizada' : 'Texto' }}
+                                    </button>
+
+                                    <!-- Botón Alinear con Karaokero AI cuando no tiene timestamps -->
+                                    <button
+                                        *ngIf="canAlignWithKaraokero && !hasRichLyrics && hasLyrics"
+                                        class="btn-karaokero-align font-10px px-2 py-1 rounded pointer mr-1"
+                                        [disabled]="isAligningLyrics"
+                                        (click)="alignCurrentLyricsWithKaraokeroAsync()"
+                                        matTooltip="Escuchar audio y sincronizar frase por frase con la AI de Karaokero"
+                                    >
+                                        <mat-spinner *ngIf="isAligningLyrics" [diameter]="11" class="mr-1"></mat-spinner>
+                                        <i *ngIf="!isAligningLyrics" class="las la-magic mr-1"></i>
+                                        <span>{{ isAligningLyrics ? 'Escuchando...' : 'Alinear con AI' }}</span>
+                                    </button>
+
+                                    <!-- Botón buscar manualmente (Japonés / Romaji / Archivo) -->
+                                    <button
+                                        class="btn-lyrics-action font-12px px-2 py-1 rounded pointer mr-1"
+                                        [ngClass]="{ active: isManualLyricsSearchOpen }"
+                                        (click)="toggleManualLyricsSearch()"
+                                        matTooltip="Buscar letra por nombre alternativo (japonés, romanizado, archivo)"
+                                    >
+                                        <i class="las la-search"></i>
+                                    </button>
+
+                                    <!-- Botón buscar en Google -->
+                                    <button
+                                        class="btn-lyrics-action font-12px px-2 py-1 rounded pointer"
+                                        (click)="openGoogleSearch()"
+                                        matTooltip="Buscar letra en Google (se abre en el navegador)"
+                                    >
+                                        <i class="lab la-google"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Banner de letra encontrada con título y opción de indicar si no es la correcta -->
+                            <div
+                                *ngIf="hasLyrics && !isLyricsLoading && !isManualLyricsLoading && displayedFoundTitle"
+                                class="lyrics-found-banner d-flex align-items-center justify-content-between px-2 py-1 mb-2 rounded flex-shrink-0"
+                            >
+                                <div class="d-flex align-items-center min-width-0 flex-grow mr-2">
+                                    <i class="las la-check-circle accent-color font-14px mr-1 flex-shrink-0"></i>
+                                    <span class="font-10px font-weight-bold secondary-text text-uppercase mr-1 flex-shrink-0">Encontrada:</span>
+                                    <span class="font-11px font-weight-bold text-truncate" [matTooltip]="displayedFoundTitle + (displayedFoundArtist ? ' — ' + displayedFoundArtist : '')">
+                                        {{ displayedFoundTitle }}
+                                        <span *ngIf="displayedFoundArtist" class="secondary-text font-weight-normal"> — {{ displayedFoundArtist }}</span>
+                                    </span>
+                                    <span
+                                        *ngIf="candidateIndexInfo"
+                                        class="badge-candidate-count font-9px ml-2 px-1 rounded flex-shrink-0"
+                                        matTooltip="Coincidencia {{ candidateIndexInfo.current }} de {{ candidateIndexInfo.total }} disponibles"
+                                    >
+                                        {{ candidateIndexInfo.current }}/{{ candidateIndexInfo.total }}
+                                    </span>
+                                </div>
+                                <div class="d-flex align-items-center flex-shrink-0">
+                                    <button
+                                        *ngIf="hasPreviousAlternative"
+                                        class="btn-prev-candidate font-10px px-1 py-0 rounded pointer mr-1 d-flex align-items-center"
+                                        (click)="previousCandidateLyrics()"
+                                        matTooltip="Volver a la coincidencia anterior"
+                                    >
+                                        <i class="las la-angle-left"></i>
+                                    </button>
+                                    <button
+                                        class="btn-reject-lyrics font-10px px-2 py-0 rounded pointer d-flex align-items-center"
+                                        (click)="rejectCurrentLyrics()"
+                                        [matTooltip]="hasNextAlternative ? 'Probar siguiente coincidencia (' + (candidateIndexInfo?.current ? candidateIndexInfo!.current + 1 : 2) + '/' + (candidateIndexInfo?.total ?? '?') + ')' : 'Descartar esta letra'"
+                                    >
+                                        <i class="las la-times mr-1"></i>
+                                        <span>{{ hasNextAlternative ? 'No es esta letra (probar otra)' : 'No es esta letra' }}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div *ngIf="candidateSwitchNotice" class="candidate-switch-toast px-2 py-1 mb-2 rounded font-10px d-flex align-items-center flex-shrink-0">
+                                <i class="las la-info-circle mr-1"></i>
+                                <span>{{ candidateSwitchNotice }}</span>
+                            </div>
+
+                            <!-- Barra de búsqueda manual integrada -->
+                            <div *ngIf="isManualLyricsSearchOpen" class="lyrics-manual-search-bar mb-2 flex-shrink-0 p-2 rounded">
+                                <div class="d-flex align-items-center">
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-sm flex-grow font-11px lyrics-search-input"
+                                        placeholder="Nombre en japonés, romanizado o inglés..."
+                                        [value]="manualLyricsQuery"
+                                        (input)="manualLyricsQuery = $any($event.target).value"
+                                        (keyup.enter)="performManualLyricsSearchAsync()"
+                                        [disabled]="isManualLyricsLoading"
+                                    />
+                                    <button
+                                        class="btn-search-lyrics font-11px ml-1 px-2 py-1 rounded pointer d-flex align-items-center"
+                                        (click)="performManualLyricsSearchAsync()"
+                                        [disabled]="isManualLyricsLoading || !manualLyricsQuery.trim()"
+                                    >
+                                        <mat-spinner *ngIf="isManualLyricsLoading" [diameter]="13" class="mr-1"></mat-spinner>
+                                        <i *ngIf="!isManualLyricsLoading" class="las la-search mr-1"></i>
+                                        <span>Buscar</span>
+                                    </button>
+                                    <button
+                                        class="btn-search-google-mini font-11px ml-1 px-2 py-1 rounded pointer d-flex align-items-center"
+                                        (click)="openGoogleSearch(manualLyricsQuery)"
+                                        matTooltip="Buscar este texto en Google"
+                                    >
+                                        <i class="lab la-google"></i>
+                                    </button>
+                                    <button
+                                        class="btn-close-lyrics-search ml-1 pointer border-0 bg-transparent secondary-text"
+                                        (click)="toggleManualLyricsSearch()"
+                                        matTooltip="Cerrar búsqueda"
+                                    >
+                                        <i class="las la-times font-14px"></i>
+                                    </button>
+                                </div>
+
+                                <div *ngIf="lyricsRejectedNotice" class="font-10px text-warning mt-1 d-flex align-items-center">
+                                    <i class="las la-exclamation-circle mr-1"></i>
+                                    <span>Letra descartada. Prueba con una de las sugerencias o escribe el nombre correcto.</span>
+                                </div>
+
+                                <div *ngIf="manualLyricsNotFound" class="font-10px text-danger mt-1">
+                                    No encontrada en los proveedores automáticos. ¡Haz clic en el botón de Google para buscarla en la web!
+                                </div>
+
+                                <!-- Sugerencias de búsqueda -->
+                                <div *ngIf="lyricsSearchSuggestions.length > 0" class="d-flex align-items-center flex-wrap mt-1">
+                                    <span class="font-10px secondary-text mr-1">Sugerencias:</span>
+                                    <button
+                                        *ngFor="let suggestion of lyricsSearchSuggestions"
+                                        class="btn-suggestion-pill font-10px px-1 py-0 rounded pointer mr-1 mb-1"
+                                        (click)="performManualLyricsSearchAsync(suggestion)"
+                                        matTooltip="Buscar: {{ suggestion }}"
+                                    >
+                                        {{ suggestion }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Contenido de la Letra -->
+                            <div class="lyrics-content flex-grow overflow-auto pr-1 position-relative" (scroll)="onLyricsScroll()">
+                                <!-- Cargando letra -->
+                                <div *ngIf="isLyricsLoading || isManualLyricsLoading || isRomanizingLyrics" class="h-100 d-flex flex-column align-items-center justify-content-center secondary-text">
+                                    <mat-spinner [diameter]="28" class="mb-2"></mat-spinner>
+                                    <span class="font-11px">{{ isRomanizingLyrics ? 'Romanizando letra...' : 'Buscando letra...' }}</span>
+                                </div>
+
+                                <!-- Letra encontrada -->
+                                <ng-container *ngIf="!isLyricsLoading && !isManualLyricsLoading && !isRomanizingLyrics && hasLyrics">
+                                    <!-- Modo Sincronizado (Seguimiento de oración y karaoke interactivo) -->
+                                    <div
+                                        *ngIf="hasRichLyrics && showRichLyrics"
+                                        class="synced-lyrics-container"
+                                    >
+                                        <div
+                                            *ngFor="let line of nowPlayingLyrics?.textLines; let i = index"
+                                            [id]="'lyric-line-' + i"
+                                            class="lyric-line-item"
+                                            [class.active]="activeLyricIndex === i"
+                                            [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
+                                            [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
+                                            [class.passed]="activeLyricIndex > i"
+                                            (click)="onLyricLineClickAsync(i)"
+                                            [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
+                                        >
+                                            <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
+                                            <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
+                                                {{ getLineSubText(i) }}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Modo Texto Completo (Scrollable plain text) -->
+                                    <div
+                                        *ngIf="!hasRichLyrics || !showRichLyrics"
+                                        class="plain-lyrics-container font-12px"
+                                    >
+                                        <ng-container *ngIf="lyricsTextMode === 'both' && nowPlayingLyrics?.textLines?.length">
+                                            <div *ngFor="let line of nowPlayingLyrics.textLines; let i = index" class="mb-2">
+                                                <div>{{ (nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().length > 0) ? nowPlayingLyrics.romanizedLines[i] : line }}</div>
+                                                <div class="secondary-text font-11px" *ngIf="nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().toLowerCase() !== line.trim().toLowerCase()">{{ line }}</div>
+                                            </div>
+                                        </ng-container>
+                                        <ng-container *ngIf="lyricsTextMode !== 'both' || !nowPlayingLyrics?.textLines?.length">
+                                            {{ (lyricsTextMode === 'romaji' && nowPlayingLyrics?.romanizedPlainText) ? nowPlayingLyrics.romanizedPlainText : nowPlayingLyrics?.plainText }}
+                                        </ng-container>
+                                    </div>
+                                </ng-container>
+
+                                <!-- Sin letra encontrada -->
+                                <div
+                                    *ngIf="!isLyricsLoading && !isManualLyricsLoading && !hasLyrics && playbackService.currentTrack"
+                                    class="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 secondary-text"
+                                >
+                                    <i class="lar la-file-alt font-32px mb-2 secondary-text opacity-50"></i>
+                                    <div class="font-12px font-weight-bold mb-1">
+                                        {{ lyricsRejectedNotice ? 'Letra descartada' : 'Sin letra disponible' }}
+                                    </div>
+                                    <div class="font-10px mb-3" style="max-width: 250px; line-height: 1.4;">
+                                        {{ lyricsRejectedNotice ? 'Has indicado que la letra encontrada no era la correcta. Prueba con una de las sugerencias o búscala con otro término.' : 'No se encontró automáticamente en los proveedores de letras con los datos actuales del archivo.' }}
+                                    </div>
+
+                                    <div class="d-flex flex-column align-items-center w-100" style="max-width: 250px;">
+                                        <!-- Botón Buscar en Google -->
+                                        <button
+                                            class="btn-google-search-prominent pointer d-flex align-items-center justify-content-center w-100 py-2 px-3 rounded font-11px font-weight-bold mb-2"
+                                            (click)="openGoogleSearch()"
+                                            matRipple
+                                        >
+                                            <i class="lab la-google font-15px mr-2"></i> Buscar letra en Google
+                                        </button>
+
+                                        <!-- Botón Buscar manualmente -->
+                                        <button
+                                            class="btn-manual-search-prominent pointer d-flex align-items-center justify-content-center w-100 py-1 px-3 rounded font-11px mb-2"
+                                            (click)="toggleManualLyricsSearch()"
+                                            matRipple
+                                        >
+                                            <i class="las la-search font-13px mr-2"></i> Buscar por nombre o archivo
+                                        </button>
+                                    </div>
+
+                                    <!-- Sugerencias para buscar con un clic -->
+                                    <div *ngIf="lyricsSearchSuggestions.length > 0" class="mt-2 w-100" style="max-width: 270px;">
+                                        <div class="font-10px secondary-text mb-1">Probar con:</div>
+                                        <div class="d-flex flex-wrap justify-content-center">
+                                            <button
+                                                *ngFor="let suggestion of lyricsSearchSuggestions"
+                                                class="btn-suggestion-pill font-10px px-2 py-1 rounded pointer m-1"
+                                                (click)="performManualLyricsSearchAsync(suggestion)"
+                                            >
+                                                {{ suggestion }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sin canción en reproducción -->
+                                <div
+                                    *ngIf="!isLyricsLoading && !isManualLyricsLoading && !playbackService.currentTrack"
+                                    class="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 secondary-text"
+                                >
+                                    <i class="las la-music font-32px mb-2 secondary-text opacity-50"></i>
+                                    <div class="font-12px font-weight-bold mb-1">No hay pista en reproducción</div>
+                                    <div class="font-10px">Inicia la reproducción de una pista para ver su letra aquí</div>
+                                </div>
+                            </div>
+                        </div>
+                    </as-split-area>
+                </as-split>
             </div>
         </as-split-area>
     </as-split>
@@ -98,7 +787,10 @@
 <mat-menu #subfolderContextMenu="matMenu">
     <ng-template matMenuContent let-subfolder="data">
         <button mat-menu-item (click)="onOpenSubfolderAsync(subfolder)">
-            <span>{{ 'open-folder' | translate }}</span>
+            {{ 'open-in-explorer' | translate }}
+        </button>
+        <button mat-menu-item (click)="onPlayFolderAsync(subfolder.path)">
+            {{ 'play' | translate }}
         </button>
     </ng-template>
 </mat-menu>

@@ -24,7 +24,7 @@ describe('DefaultThemesCreator', () => {
 
             // Assert
             expect(defaultThemes.length).toEqual(11);
-            expect(defaultThemes[0].name).toEqual('Dopamine');
+            expect(defaultThemes[0].name).toEqual('Japamine');
             expect(defaultThemes[1].name).toEqual('Adwaita');
             expect(defaultThemes[2].name).toEqual('Zune');
             expect(defaultThemes[3].name).toEqual('Beats');

@@ -34,4 +34,6 @@ export abstract class TrackRepositoryBase {
     public abstract enableNeedsAlbumArtworkIndexingForAllTracks(onlyWhenHasNoCover: boolean, albumKeyIndex: string): void;
     public abstract updateTrack(track: Track): void;
     public abstract getTracksForSmartPlaylist(whereClause: string): Track[] | undefined;
+    public abstract getTracksWithPlays(): Track[] | undefined;
+    public abstract getTracksInDirectoryPrefix(directoryPrefix: string): Track[] | undefined;
 }

@@ -10,11 +10,11 @@ export class DopamineTheme {
         const darkColors: ThemeNeutralColors = defaultDarkColors();
         const lightColors: ThemeNeutralColors = defaultLightColors();
 
-        darkColors.scrollBars = '#4883e0';
-        lightColors.scrollBars = '#4883e0';
+        darkColors.scrollBars = '#00A884';
+        lightColors.scrollBars = '#00A884';
 
         const options: ThemeOptions = new ThemeOptions(false);
 
-        return new Theme('Dopamine', author, new ThemeCoreColors('#6260e3', '#3fdcdd', '#4883e0'), darkColors, lightColors, options);
+        return new Theme('Japamine', author, new ThemeCoreColors('#00B894', '#55EFC4', '#00A884'), darkColors, lightColors, options);
     }
 }

@@ -37,6 +37,8 @@ export class LoadingComponent implements OnInit {
 
                 if (this.settings.playerType === 'cover') {
                     await this.navigationService.navigateToCoverPlayerAsync();
+                } else if (this.settings.playerType === 'mini') {
+                    await this.navigationService.navigateToMiniPlayerAsync();
                 } else {
                     await this.navigationService.navigateToNowPlayingAsync();
                 }
@@ -45,6 +47,8 @@ export class LoadingComponent implements OnInit {
 
                 if (this.settings.playerType === 'cover') {
                     await this.navigationService.navigateToCoverPlayerAsync();
+                } else if (this.settings.playerType === 'mini') {
+                    await this.navigationService.navigateToMiniPlayerAsync();
                 } else {
                     await this.navigationService.navigateToCollectionAsync();
                 }
