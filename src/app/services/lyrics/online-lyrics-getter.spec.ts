@@ -140,5 +140,33 @@ describe('OnlineLyricsGetter', () => {
             expect(lyricsModel.sourceType).toEqual(LyricsSourceType.none);
             expect(lyricsModel.plainText).toEqual('');
         });
+
+        it('should generate query candidates with both word orders and collapsed variations', () => {
+            const track: TrackModel = MockCreator.createTrackModel('path', 'スノーフラワー', 'Plastic Tree');
+            (track as any).track.fileName = 'Snow flower.mp3';
+            const instance: OnlineLyricsGetter = createInstance();
+
+            const candidates = instance.generateQueryCandidates(track);
+
+            // Checks that title-first, artist-first, and collapsed variations are generated
+            expect(candidates).toContain('Snow flower Plastic Tree');
+            expect(candidates).toContain('Plastic Tree Snow flower');
+            expect(candidates).toContain('Snowflower Plastic Tree');
+            expect(candidates).toContain('Plastic Tree Snowflower');
+            expect(candidates).toContain('スノーフラワー Plastic Tree');
+            expect(candidates).toContain('Plastic Tree スノーフラワー');
+        });
+
+        it('should extract title candidates including file name and collapsed file name', () => {
+            const track: TrackModel = MockCreator.createTrackModel('path', 'スノーフラワー', 'Plastic Tree');
+            (track as any).track.fileName = 'Snow flower.mp3';
+            const instance: OnlineLyricsGetter = createInstance();
+
+            const titles = instance.extractTitleCandidates(track);
+
+            expect(titles).toContain('スノーフラワー');
+            expect(titles).toContain('Snow flower');
+            expect(titles).toContain('Snowflower');
+        });
     });
 });

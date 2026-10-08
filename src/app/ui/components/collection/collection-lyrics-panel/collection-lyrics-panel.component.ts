@@ -261,6 +261,10 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         return this.lyricsService?.hasNextAlternative() ?? false;
     }
 
+    public get isLyricsFromLrclib(): boolean {
+        return (this.nowPlayingLyrics?.sourceName ?? '').trim().toUpperCase() === 'LRCLIB';
+    }
+
     public toggleLyricsMode(): void {
         this.showRichLyrics = !this.showRichLyrics;
     }
@@ -417,6 +421,16 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
 
         const artist = track.rawFirstArtist || track.artists || '';
         const title = track.rawTitle || track.title || '';
+
+        // If lyrics already came directly from LRCLIB, do not re-upload since they already exist there
+        if (this.isLyricsFromLrclib) {
+            this.candidateSwitchNotice = '✓ Letra confirmada (obtenida de LRCLIB)';
+            setTimeout(() => {
+                this.candidateSwitchNotice = '';
+                this.cd.detectChanges();
+            }, 4000);
+            return;
+        }
 
         if (!this.lrclibApi || !artist || !title) {
             this.candidateSwitchNotice = '✓ Letra confirmada como correcta';

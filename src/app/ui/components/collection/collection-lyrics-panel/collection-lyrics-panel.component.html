@@ -100,7 +100,7 @@
                 [disabled]="isConfirmingLyrics"
                 [ngClass]="{ 'confirmed': isLyricsConfirmed }"
                 (click)="confirmCurrentLyricsAsync()"
-                [matTooltip]="isLyricsConfirmed ? 'Letra ya confirmada como correcta' : 'Confirmar que es la letra correcta y validarla/compartirla en LRCLIB'"
+                [matTooltip]="isLyricsConfirmed ? 'Letra ya confirmada como correcta' : (isLyricsFromLrclib ? 'Confirmar que esta letra de LRCLIB es la correcta' : 'Confirmar que es la letra correcta y validarla/compartirla en LRCLIB')"
             >
                 <mat-spinner *ngIf="isConfirmingLyrics" [diameter]="10" class="mr-1"></mat-spinner>
                 <i *ngIf="!isConfirmingLyrics" class="las la-check mr-1"></i>

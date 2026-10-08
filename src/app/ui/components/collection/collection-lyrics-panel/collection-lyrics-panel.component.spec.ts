@@ -110,6 +110,43 @@ describe('CollectionLyricsPanelComponent', () => {
             expect((component as any).confirmedTracks.has('C:/Music/test.mp3')).toBe(true);
             expect(component.candidateSwitchNotice).toContain('confirmada');
         });
+
+        it('should detect when lyrics are from LRCLIB', () => {
+            component.nowPlayingLyrics = { sourceName: 'LRCLIB' } as any;
+            expect(component.isLyricsFromLrclib).toBe(true);
+
+            component.nowPlayingLyrics = { sourceName: 'lrclib' } as any;
+            expect(component.isLyricsFromLrclib).toBe(true);
+
+            component.nowPlayingLyrics = { sourceName: 'LyricsOVH' } as any;
+            expect(component.isLyricsFromLrclib).toBe(false);
+
+            component.nowPlayingLyrics = undefined;
+            expect(component.isLyricsFromLrclib).toBe(false);
+        });
+
+        it('should confirm locally and skip re-uploading when lyrics came from LRCLIB', async () => {
+            const track = {
+                path: 'C:/Music/test.mp3',
+                title: 'Test Song',
+                artists: 'Test Artist',
+                durationInMilliseconds: 180000,
+            } as any;
+            playbackServiceMock.setup((x) => x.currentTrack).returns(() => track);
+            component.nowPlayingLyrics = {
+                sourceName: 'LRCLIB',
+                plainText: 'Line 1\nLine 2',
+                textLines: ['Line 1', 'Line 2'],
+                startTimeStamps: [0, 5],
+            } as any;
+
+            await component.confirmCurrentLyricsAsync();
+
+            expect(component.isLyricsConfirmed).toBe(true);
+            expect((component as any).confirmedTracks.has('C:/Music/test.mp3')).toBe(true);
+            expect(component.candidateSwitchNotice).toBe('✓ Letra confirmada (obtenida de LRCLIB)');
+            expect(component.isConfirmingLyrics).toBe(false);
+        });
     });
 });
 

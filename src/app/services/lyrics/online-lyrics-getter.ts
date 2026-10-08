@@ -76,6 +76,7 @@ export class OnlineLyricsGetter implements ILyricsGetter {
         // 2. Search LRCLIB with smart queries & suggestions
         const searchQueries: string[] = [];
         if (artist.length > 0 && cleanTitle.length > 0) {
+            searchQueries.push(`${cleanTitle} ${artist}`);
             searchQueries.push(`${artist} ${cleanTitle}`);
         }
         for (const s of suggestions) {
@@ -84,15 +85,26 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             }
         }
         for (const t of titleCandidates) {
-            const q = artist.length > 0 ? `${artist} ${t}` : t;
-            if (!searchQueries.includes(q)) {
-                searchQueries.push(q);
+            const q1 = artist.length > 0 ? `${t} ${artist}` : t;
+            const q2 = artist.length > 0 ? `${artist} ${t}` : t;
+            if (!searchQueries.includes(q1)) {
+                searchQueries.push(q1);
+            }
+            if (!searchQueries.includes(q2)) {
+                searchQueries.push(q2);
+            }
+            const collapsed = t.replace(/\s+/g, '');
+            if (collapsed.length > 1 && collapsed !== t && artist.length > 0) {
+                const q3 = `${collapsed} ${artist}`;
+                if (!searchQueries.includes(q3)) {
+                    searchQueries.push(q3);
+                }
             }
         }
 
-        // Query top 4 search strings on LRCLIB
-        const queriesToRun = searchQueries.slice(0, 4);
-        for (const q of queriesToRun) {
+        // Query search strings on LRCLIB progressively (up to 8 queries if candidates not yet found)
+        for (let i = 0; i < searchQueries.length && i < 8; i++) {
+            const q = searchQueries[i];
             try {
                 const rawResults = await this.lrclibApi.searchRawAsync(q);
                 for (const res of rawResults) {
@@ -107,6 +119,14 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                 }
             } catch {
                 // Continue to next query
+            }
+
+            // Early exit if confident matches were found
+            if (candidateMap.size > 0 && i >= 2) {
+                const highestScore = Math.max(...Array.from(candidateMap.values()).map((c) => c.score));
+                if (highestScore >= 80) {
+                    break;
+                }
             }
         }
 
@@ -388,10 +408,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
 
         if (artist !== '' && rawTitle !== '') {
             suggestions.push(`${artist} ${rawTitle}`);
+            suggestions.push(`${rawTitle} ${artist}`);
         }
 
         if (artist !== '' && cleanTitle !== '' && cleanTitle !== rawTitle) {
             suggestions.push(`${artist} ${cleanTitle}`);
+            suggestions.push(`${cleanTitle} ${artist}`);
         }
 
         this.addRomajiSuggestions(suggestions, artist, rawTitle, cleanTitle);
@@ -423,7 +445,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             const romajiTitle = this.romanizationService.transliterateKanaToRomaji(rawTitle).trim();
             if (romajiTitle.length > 1) {
                 if (artist !== '') {
+                    suggestions.push(`${romajiTitle} ${artist}`);
                     suggestions.push(`${artist} ${romajiTitle}`);
+                    const collapsed = romajiTitle.replace(/\s+/g, '');
+                    if (collapsed !== romajiTitle && collapsed.length > 1) {
+                        suggestions.push(`${collapsed} ${artist}`);
+                    }
                 }
                 suggestions.push(romajiTitle);
             }
@@ -435,11 +462,14 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             const romajiArtist = this.romanizationService.transliterateKanaToRomaji(artist).trim();
             if (romajiArtist.length > 1) {
                 suggestions.push(`${romajiArtist} ${rawTitle}`);
+                suggestions.push(`${rawTitle} ${romajiArtist}`);
                 if (cleanTitle !== '' && cleanTitle !== rawTitle) {
                     suggestions.push(`${romajiArtist} ${cleanTitle}`);
+                    suggestions.push(`${cleanTitle} ${romajiArtist}`);
                 }
                 if (rawTitle !== '' && this.romanizationService.containsJapanese(rawTitle)) {
                     const romajiTitle = this.romanizationService.transliterateKanaToRomaji(rawTitle).trim();
+                    suggestions.push(`${romajiTitle} ${romajiArtist}`);
                     suggestions.push(`${romajiArtist} ${romajiTitle}`);
                 }
             }
@@ -463,17 +493,28 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             const fnTitle = dashParts[dashParts.length - 1].trim();
 
             if (fnArtist !== '' && fnTitle !== '') {
+                suggestions.push(`${fnTitle} ${fnArtist}`);
                 suggestions.push(`${fnArtist} ${fnTitle}`);
             }
             if (artist !== '' && fnTitle !== '' && fnTitle !== rawTitle) {
+                suggestions.push(`${fnTitle} ${artist}`);
                 suggestions.push(`${artist} ${fnTitle}`);
+                const collapsed = fnTitle.replace(/\s+/g, '');
+                if (collapsed !== fnTitle && collapsed.length > 1) {
+                    suggestions.push(`${collapsed} ${artist}`);
+                }
             }
             if (fnTitle !== '' && fnTitle !== rawTitle) {
                 suggestions.push(fnTitle);
             }
         } else if (clean !== '' && clean !== rawTitle) {
             if (artist !== '') {
+                suggestions.push(`${clean} ${artist}`);
                 suggestions.push(`${artist} ${clean}`);
+                const collapsed = clean.replace(/\s+/g, '');
+                if (collapsed !== clean && collapsed.length > 1) {
+                    suggestions.push(`${collapsed} ${artist}`);
+                }
             }
             suggestions.push(clean);
         }
@@ -543,6 +584,10 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             const fnTitle = this.extractTitleFromFileName(fileName);
             if (fnTitle != null && fnTitle.length > 0) {
                 titles.push(fnTitle);
+                const collapsed = fnTitle.replace(/\s+/g, '');
+                if (collapsed.length > 1 && collapsed !== fnTitle) {
+                    titles.push(collapsed);
+                }
             }
         }
     }
@@ -554,9 +599,20 @@ export class OnlineLyricsGetter implements ILyricsGetter {
 
         for (const t of titles) {
             if (artist.length > 0) {
+                // Word order matters in LRCLIB and web search: try both Title-Artist and Artist-Title
+                candidates.push(`${t} ${artist}`);
                 candidates.push(`${artist} ${t}`);
+                const collapsed = t.replace(/\s+/g, '');
+                if (collapsed.length > 1 && collapsed !== t) {
+                    candidates.push(`${collapsed} ${artist}`);
+                    candidates.push(`${artist} ${collapsed}`);
+                }
             } else {
                 candidates.push(t);
+                const collapsed = t.replace(/\s+/g, '');
+                if (collapsed.length > 1 && collapsed !== t) {
+                    candidates.push(collapsed);
+                }
             }
         }
 
@@ -568,7 +624,13 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                     .replace(/^\d{1,4}[\s._-]+/, '')
                     .trim();
                 if (cleanFnTitle.length > 0) {
+                    candidates.push(`${cleanFnTitle} ${artist}`);
                     candidates.push(`${artist} ${cleanFnTitle}`);
+                    const collapsed = cleanFnTitle.replace(/\s+/g, '');
+                    if (collapsed.length > 1 && collapsed !== cleanFnTitle) {
+                        candidates.push(`${collapsed} ${artist}`);
+                        candidates.push(`${artist} ${collapsed}`);
+                    }
                 }
             } else {
                 candidates.push(fnWithoutExt);

@@ -197,7 +197,7 @@
     "add-to-playback-queue": "Agregar a la cola de reproducción",
     "single-track-added-to-playback-queue": "Se agregó 1 canción a la cola de reproducción",
     "multiple-tracks-added-to-playback-queue": "Se agregaron {{numberOfAddedTracks}} canciones a la cola de reproducción",
-    "show-dopamine": "Mostrar Dopamine",
+    "show-dopamine": "Mostrar Japamine",
     "exit": "Salir",
     "notification-area": "Área de notificación",
     "show-icon-in-notification-area": "Mostrar un icono en el área de notificación (requiere reiniciar)",

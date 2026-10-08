@@ -194,7 +194,7 @@
     "add-to-playback-queue": "再生キューに追加",
     "single-track-added-to-playback-queue": "曲が再生キューに追加されました",
     "multiple-tracks-added-to-playback-queue": "再生キューに {{numberOfAddedTracks}} 曲が追加されました",
-    "show-dopamine": "Dopamineを開く",
+    "show-dopamine": "Japamineを開く",
     "exit": "終了",
     "notification-area": "通知エリア",
     "show-icon-in-notification-area": "通知エリアにアイコンを表示する (有効にするには再起動が必要)",
