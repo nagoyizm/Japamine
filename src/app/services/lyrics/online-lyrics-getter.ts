@@ -143,10 +143,10 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             }
         } catch { /* ignore */ }
 
-        // Japanese databases
-        if (fallbackCandidates.length === 0 && LyricsFilterUtils.isJapaneseOrigin(artist, rawTitle)) {
+        // Japanese databases (J-Lyric, UtaTen)
+        if (fallbackCandidates.length === 0) {
             try {
-                const jLyric = await this.withTimeout(this.getLyricsFromJLyricAsync(track, artist, titleCandidates), 2500, undefined);
+                const jLyric = await this.withTimeout(this.getLyricsFromJLyricAsync(track, artist, titleCandidates), 3000, undefined);
                 if (jLyric != null && !StringUtils.isNullOrWhiteSpace(jLyric.plainText)) {
                     fallbackCandidates.push(jLyric);
                 }
@@ -154,7 +154,7 @@ export class OnlineLyricsGetter implements ILyricsGetter {
 
             if (fallbackCandidates.length === 0) {
                 try {
-                    const utaTen = await this.withTimeout(this.getLyricsFromUtaTenAsync(track, artist, titleCandidates), 2500, undefined);
+                    const utaTen = await this.withTimeout(this.getLyricsFromUtaTenAsync(track, artist, titleCandidates), 3000, undefined);
                     if (utaTen != null && !StringUtils.isNullOrWhiteSpace(utaTen.plainText)) {
                         fallbackCandidates.push(utaTen);
                     }

@@ -27,21 +27,50 @@ export class JLyricApi implements ILyricsApi {
         const cleanArtist = (artist !== '' ? artist : '').trim();
 
         try {
-            // 1. First attempt: search with both title and artist
+            const queriesToTry: { kt: string; ka: string }[] = [];
+
+            // 1. Full clean title + artist
             if (cleanArtist !== '') {
-                const combinedUrl = `${JLyricApi.baseUrl}/search.php?kt=${encodeURIComponent(cleanTitle)}&ct=2&ka=${encodeURIComponent(cleanArtist)}&ca=2`;
-                const lyrics = await this.searchAndExtractFromUrlAsync(combinedUrl, cleanArtist, cleanTitle);
+                queriesToTry.push({ kt: cleanTitle, ka: cleanArtist });
+            }
+
+            // 2. Title with punctuation removed + artist
+            const noPunctTitle = cleanTitle.replace(/[!?,.:;~'"\-()\[\]{}]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (noPunctTitle.length > 0 && noPunctTitle !== cleanTitle && cleanArtist !== '') {
+                queriesToTry.push({ kt: noPunctTitle, ka: cleanArtist });
+            }
+
+            // 3. Significant words from title + artist
+            if (cleanArtist !== '') {
+                const words = noPunctTitle.split(' ').filter((w) => w.length >= 2);
+                for (const word of words) {
+                    if (word !== cleanTitle && word !== noPunctTitle) {
+                        queriesToTry.push({ kt: word, ka: cleanArtist });
+                    }
+                }
+            }
+
+            // 4. Title only
+            queriesToTry.push({ kt: cleanTitle, ka: '' });
+            if (noPunctTitle.length > 0 && noPunctTitle !== cleanTitle) {
+                queriesToTry.push({ kt: noPunctTitle, ka: '' });
+            }
+
+            for (const q of queriesToTry) {
+                const searchUrl = q.ka !== ''
+                    ? `${JLyricApi.baseUrl}/search.php?kt=${encodeURIComponent(q.kt)}&ct=2&ka=${encodeURIComponent(q.ka)}&ca=2`
+                    : `${JLyricApi.baseUrl}/search.php?kt=${encodeURIComponent(q.kt)}&ct=2`;
+
+                const lyrics = await this.searchAndExtractFromUrlAsync(searchUrl, cleanArtist, cleanTitle);
                 if (!StringUtils.isNullOrWhiteSpace(lyrics.text)) {
                     return lyrics;
                 }
             }
-
-            // 2. Second attempt: search by title only and filter results strictly by artist
-            const titleOnlyUrl = `${JLyricApi.baseUrl}/search.php?kt=${encodeURIComponent(cleanTitle)}&ct=2`;
-            return await this.searchAndExtractFromUrlAsync(titleOnlyUrl, cleanArtist, cleanTitle);
         } catch {
             return Lyrics.empty();
         }
+
+        return Lyrics.empty();
     }
 
     private async searchAndExtractFromUrlAsync(
@@ -60,7 +89,7 @@ export class JLyricApi implements ILyricsApi {
             }
 
             const $ = cheerio.load(html);
-            const hits = $('#mnb .bdy');
+            const hits = $('#mnb .bdy, #mnb .lbdy').filter((_, el) => $(el).find('p.mid a').length > 0);
 
             if (hits.length === 0) {
                 return Lyrics.empty();

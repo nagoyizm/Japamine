@@ -432,14 +432,18 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         this.cd.detectChanges();
 
         try {
+            const linesToSend = (this.nowPlayingLyrics.romanizedLines && this.nowPlayingLyrics.romanizedLines.length === this.nowPlayingLyrics.textLines?.length)
+                ? this.nowPlayingLyrics.romanizedLines.map((rom, idx) => (rom && rom.trim().length > 0 ? rom : this.nowPlayingLyrics!.textLines![idx]))
+                : this.nowPlayingLyrics.textLines ?? [];
+
             let syncedLyrics: string | undefined = undefined;
             if (
                 this.nowPlayingLyrics.startTimeStamps &&
-                this.nowPlayingLyrics.textLines &&
+                linesToSend.length > 0 &&
                 this.nowPlayingLyrics.startTimeStamps.length > 0 &&
-                this.nowPlayingLyrics.startTimeStamps.length === this.nowPlayingLyrics.textLines.length
+                this.nowPlayingLyrics.startTimeStamps.length === linesToSend.length
             ) {
-                syncedLyrics = this.nowPlayingLyrics.textLines
+                syncedLyrics = linesToSend
                     .map((line, idx) => {
                         const sec = this.nowPlayingLyrics!.startTimeStamps![idx] ?? 0;
                         const m = Math.floor(sec / 60);
@@ -451,7 +455,10 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
                     .join('\n');
             }
 
-            const plain = this.nowPlayingLyrics.plainText || this.nowPlayingLyrics.textLines?.join('\n') || '';
+            const plain = this.nowPlayingLyrics.romanizedPlainText ||
+                (this.nowPlayingLyrics.romanizedLines && this.nowPlayingLyrics.romanizedLines.length > 0 ? this.nowPlayingLyrics.romanizedLines.join('\n') : '') ||
+                this.nowPlayingLyrics.plainText ||
+                this.nowPlayingLyrics.textLines?.join('\n') || '';
             const durationSec = track.durationInMilliseconds > 0 ? Math.round(track.durationInMilliseconds / 1000) : undefined;
 
             const res = await this.lrclibApi.publishLyricsAsync(
@@ -666,7 +673,12 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         const orig = this.nowPlayingLyrics.textLines?.[index] ?? '';
         const romaji = this.nowPlayingLyrics.romanizedLines?.[index];
 
-        if (this.lyricsTextMode === 'romaji' && romaji && romaji.trim().length > 0) {
+        if (this.lyricsTextMode === 'original') {
+            return orig;
+        }
+
+        // Default ('both') or 'romaji' mode: always show romanized text as the prominent singing line
+        if (romaji && romaji.trim().length > 0) {
             return romaji;
         }
         return orig;
@@ -677,8 +689,9 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         const orig = this.nowPlayingLyrics.textLines?.[index] ?? '';
         const romaji = this.nowPlayingLyrics.romanizedLines?.[index];
 
+        // In 'both' mode, the original kanji/kana line is displayed as secondary text underneath the romaji
         if (romaji && romaji.trim().length > 0 && romaji.trim().toLowerCase() !== orig.trim().toLowerCase()) {
-            return romaji;
+            return orig;
         }
         return null;
     }
@@ -733,10 +746,10 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
 
         if (this.activeLyricIndex !== index) {
             this.activeLyricIndex = index;
+            this.cd?.detectChanges();
             if (!this.isUserScrollingLyrics && index >= 0) {
                 this.scrollToLyricLine(index);
             }
-            this.cd?.detectChanges();
         }
     }
 
@@ -744,10 +757,21 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         const container = this.lyricsScrollContainer?.nativeElement;
         if (!container) return;
 
-        const el = container.querySelector(`#lyric-line-${index}`) as HTMLElement;
+        let el = container.querySelector(`#lyric-line-${index}`) as HTMLElement;
+        if (!el) {
+            for (let offset = 1; offset <= 3; offset++) {
+                el = (container.querySelector(`#lyric-line-${index - offset}`) || container.querySelector(`#lyric-line-${index + offset}`)) as HTMLElement;
+                if (el) break;
+            }
+        }
         if (el) {
-            const targetY = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
-            container.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+            const containerRect = container.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            const currentScroll = container.scrollTop;
+            const targetY = currentScroll + (elRect.top - containerRect.top) - (container.clientHeight / 2) + (elRect.height / 2);
+            const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
+            const clampedY = Math.max(0, Math.min(targetY, maxScroll));
+            container.scrollTo({ top: clampedY, behavior: 'smooth' });
         }
     }
 
