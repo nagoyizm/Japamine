@@ -1,6 +1,26 @@
-<div class="collection-viewport p-3">
-    <app-collection-tracks-table
-        class="fill"
-        [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
-    ></app-collection-tracks-table>
+<div class="collection-viewport">
+    <as-split gutterSize="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)">
+        <as-split-area [size]="leftPaneSize" minSize="30" maxSize="85">
+            <div class="p-3 fill h-100 overflow-hidden">
+                <app-collection-tracks-table
+                    class="fill"
+                    [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
+                ></app-collection-tracks-table>
+            </div>
+        </as-split-area>
+        <as-split-area [size]="rightPaneSize" minSize="15" maxSize="70">
+            <div class="right-side-pane h-100 d-flex flex-column overflow-hidden">
+                <as-split [gutterSize]="4" unit="percent" direction="vertical">
+                    <as-split-area [size]="50" [minSize]="20">
+                        <div class="p-3 fill h-100 overflow-hidden">
+                            <app-playback-queue></app-playback-queue>
+                        </div>
+                    </as-split-area>
+                    <as-split-area [size]="50" [minSize]="20">
+                        <app-collection-lyrics-panel></app-collection-lyrics-panel>
+                    </as-split-area>
+                </as-split>
+            </div>
+        </as-split-area>
+    </as-split>
 </div>

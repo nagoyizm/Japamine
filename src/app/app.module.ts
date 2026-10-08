@@ -81,6 +81,7 @@ import { GenresAlbumsPersister } from './ui/components/collection/collection-gen
 import { GenresPersister } from './ui/components/collection/collection-genres/genres-persister';
 import { GenresTracksPersister } from './ui/components/collection/collection-genres/genres-tracks-persister';
 import { CollectionPlaybackPaneComponent } from './ui/components/collection/collection-playback-pane/collection-playback-pane.component';
+import { CollectionLyricsPanelComponent } from './ui/components/collection/collection-lyrics-panel/collection-lyrics-panel.component';
 import { CollectionPlaylistsComponent } from './ui/components/collection/collection-playlists/collection-playlists.component';
 import { PlaylistBrowserComponent } from './ui/components/collection/collection-playlists/playlist-browser/playlist-browser.component';
 import { PlaylistComponent } from './ui/components/collection/collection-playlists/playlist-browser/playlist/playlist.component';
@@ -404,6 +405,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         AboutComponent,
         ComponentsComponent,
         CollectionFoldersComponent,
+        CollectionLyricsPanelComponent,
         CollectionPlaybackPaneComponent,
         HighlightsPlaybackPaneComponent,
         VolumeControlComponent,

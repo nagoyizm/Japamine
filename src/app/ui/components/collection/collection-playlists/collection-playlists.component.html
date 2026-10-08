@@ -17,16 +17,24 @@
                 scrollPositionKey="playlists-playlists"
             ></app-playlist-browser>
         </as-split-area>
-        <as-split-area [size]="rightPaneSize" minSize="5" maxSize="95"
-            ><div class="right-side-pane">
-                <app-playlist-track-browser
-                    class="p-3 fill"
-                    [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
-                    [(tracksPersister)]="this.tracksPersister"
-                    [canReorder]="!this.searchService.delayedSearchText"
-                    [canRemoveFromPlaylist]="this.canRemoveFromPlaylist"
-                    scrollPositionKey="playlists-tracks"
-                ></app-playlist-track-browser></div
-        ></as-split-area>
+        <as-split-area [size]="rightPaneSize" minSize="5" maxSize="95">
+            <div class="right-side-pane h-100 d-flex flex-column overflow-hidden">
+                <as-split [gutterSize]="4" unit="percent" direction="vertical">
+                    <as-split-area [size]="50" [minSize]="20">
+                        <app-playlist-track-browser
+                            class="p-3 fill"
+                            [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
+                            [(tracksPersister)]="this.tracksPersister"
+                            [canReorder]="!this.searchService.delayedSearchText"
+                            [canRemoveFromPlaylist]="this.canRemoveFromPlaylist"
+                            scrollPositionKey="playlists-tracks"
+                        ></app-playlist-track-browser>
+                    </as-split-area>
+                    <as-split-area [size]="50" [minSize]="20">
+                        <app-collection-lyrics-panel></app-collection-lyrics-panel>
+                    </as-split-area>
+                </as-split>
+            </div>
+        </as-split-area>
     </as-split>
 </div>

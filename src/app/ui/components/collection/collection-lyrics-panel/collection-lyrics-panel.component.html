@@ -1,0 +1,301 @@
+<div class="lyrics-pane h-100 d-flex flex-column p-3 overflow-hidden">
+    <!-- Encabezado de la Letra -->
+    <div class="lyrics-header d-flex align-items-center justify-content-between mb-2 flex-shrink-0">
+        <div class="d-flex align-items-center min-width-0">
+            <i class="las la-microphone-alt accent-color font-16px mr-2"></i>
+            <span class="font-weight-bold font-12px">Letra</span>
+            <span class="badge-lyrics-source font-10px px-1 rounded ml-2" *ngIf="lyricsSourceLabel">
+                {{ lyricsSourceLabel }}
+            </span>
+        </div>
+        <div class="d-flex align-items-center" *ngIf="playbackService.currentTrack">
+            <!-- Selector Modo Romaji / Ambos / Original -->
+            <button
+                *ngIf="containsJapaneseLyrics || nowPlayingLyrics?.romanizedLines"
+                class="btn-romaji-toggle font-10px px-2 py-1 rounded pointer mr-1"
+                (click)="cycleLyricsTextMode()"
+                matTooltip="Modo de texto: {{ lyricsTextModeLabel }} (Clic para alternar Romaji / Ambos / Original)"
+            >
+                <i class="las la-language mr-1"></i>
+                <span>{{ lyricsTextModeLabel }}</span>
+            </button>
+
+            <!-- Alternar modo si tiene letra sincronizada -->
+            <button
+                *ngIf="hasRichLyrics"
+                class="btn-lyrics-toggle font-10px px-2 py-1 rounded pointer mr-1"
+                [ngClass]="{ active: showRichLyrics }"
+                (click)="toggleLyricsMode()"
+                matTooltip="Alternar entre modo sincronizado y texto completo"
+            >
+                {{ showRichLyrics ? 'Sincronizada' : 'Texto' }}
+            </button>
+
+            <!-- Botón Alinear con Karaokero AI cuando no tiene timestamps -->
+            <button
+                *ngIf="canAlignWithKaraokero && !hasRichLyrics && hasLyrics"
+                class="btn-karaokero-align font-10px px-2 py-1 rounded pointer mr-1"
+                [disabled]="isAligningLyrics"
+                (click)="alignCurrentLyricsWithKaraokeroAsync()"
+                matTooltip="Escuchar audio y sincronizar frase por frase con la AI de Karaokero"
+            >
+                <mat-spinner *ngIf="isAligningLyrics" [diameter]="11" class="mr-1"></mat-spinner>
+                <i *ngIf="!isAligningLyrics" class="las la-magic mr-1"></i>
+                <span>{{ isAligningLyrics ? 'Escuchando...' : 'Alinear con AI' }}</span>
+            </button>
+
+            <!-- Botón Ingresar / Pegar letra manualmente -->
+            <button
+                class="btn-lyrics-action font-12px px-2 py-1 rounded pointer mr-1"
+                (click)="openEnterLyricsDialog()"
+                matTooltip="Ingresar o pegar letra manualmente..."
+            >
+                <i class="las la-pen"></i>
+            </button>
+
+            <!-- Botón buscar manualmente (Japonés / Romaji / Archivo) -->
+            <button
+                class="btn-lyrics-action font-12px px-2 py-1 rounded pointer mr-1"
+                [ngClass]="{ active: isManualLyricsSearchOpen }"
+                (click)="toggleManualLyricsSearch()"
+                matTooltip="Buscar letra por nombre alternativo (japonés, romanizado, archivo)"
+            >
+                <i class="las la-search"></i>
+            </button>
+
+            <!-- Botón buscar en Google -->
+            <button
+                class="btn-lyrics-action font-12px px-2 py-1 rounded pointer"
+                (click)="openGoogleSearch()"
+                matTooltip="Buscar letra en Google (se abre en el navegador)"
+            >
+                <i class="lab la-google"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner de letra encontrada con título y opción de indicar si no es la correcta -->
+    <div
+        *ngIf="hasLyrics && !isLyricsLoading && !isManualLyricsLoading && displayedFoundTitle"
+        class="lyrics-found-banner d-flex align-items-center justify-content-between px-2 py-1 mb-2 rounded flex-shrink-0"
+    >
+        <div class="d-flex align-items-center min-width-0 flex-grow mr-2">
+            <i class="las la-check-circle accent-color font-14px mr-1 flex-shrink-0"></i>
+            <span class="font-10px font-weight-bold secondary-text text-uppercase mr-1 flex-shrink-0">Encontrada:</span>
+            <span class="font-11px font-weight-bold text-truncate" [matTooltip]="displayedFoundTitle + (displayedFoundArtist ? ' — ' + displayedFoundArtist : '')">
+                {{ displayedFoundTitle }}
+                <span *ngIf="displayedFoundArtist" class="secondary-text font-weight-normal"> — {{ displayedFoundArtist }}</span>
+            </span>
+            <span
+                *ngIf="candidateIndexInfo"
+                class="badge-candidate-count font-9px ml-2 px-1 rounded flex-shrink-0"
+                matTooltip="Coincidencia {{ candidateIndexInfo.current }} de {{ candidateIndexInfo.total }} disponibles"
+            >
+                {{ candidateIndexInfo.current }}/{{ candidateIndexInfo.total }}
+            </span>
+        </div>
+        <div class="d-flex align-items-center flex-shrink-0">
+            <button
+                *ngIf="hasPreviousAlternative"
+                class="btn-prev-candidate font-10px px-1 py-0 rounded pointer mr-1 d-flex align-items-center"
+                (click)="previousCandidateLyrics()"
+                matTooltip="Volver a la coincidencia anterior"
+            >
+                <i class="las la-angle-left"></i>
+            </button>
+            <button
+                class="btn-reject-lyrics font-10px px-2 py-0 rounded pointer d-flex align-items-center"
+                (click)="rejectCurrentLyrics()"
+                [matTooltip]="hasNextAlternative ? 'Probar siguiente coincidencia (' + (candidateIndexInfo?.current ? candidateIndexInfo!.current + 1 : 2) + '/' + (candidateIndexInfo?.total ?? '?') + ')' : 'Descartar esta letra'"
+            >
+                <i class="las la-times mr-1"></i>
+                <span>{{ hasNextAlternative ? 'No es esta letra (probar otra)' : 'No es esta letra' }}</span>
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="candidateSwitchNotice" class="candidate-switch-toast px-2 py-1 mb-2 rounded font-10px d-flex align-items-center flex-shrink-0">
+        <i class="las la-info-circle mr-1"></i>
+        <span>{{ candidateSwitchNotice }}</span>
+    </div>
+
+    <!-- Barra de búsqueda manual integrada -->
+    <div *ngIf="isManualLyricsSearchOpen" class="lyrics-manual-search-bar mb-2 flex-shrink-0 p-2 rounded">
+        <div class="d-flex align-items-center">
+            <input
+                type="text"
+                class="form-control form-control-sm flex-grow font-11px lyrics-search-input"
+                placeholder="Nombre en japonés, romanizado o inglés..."
+                [value]="manualLyricsQuery"
+                (input)="manualLyricsQuery = $any($event.target).value"
+                (keyup.enter)="performManualLyricsSearchAsync()"
+                [disabled]="isManualLyricsLoading"
+            />
+            <button
+                class="btn-search-lyrics font-11px ml-1 px-2 py-1 rounded pointer d-flex align-items-center"
+                (click)="performManualLyricsSearchAsync()"
+                [disabled]="isManualLyricsLoading || !manualLyricsQuery.trim()"
+            >
+                <mat-spinner *ngIf="isManualLyricsLoading" [diameter]="13" class="mr-1"></mat-spinner>
+                <i *ngIf="!isManualLyricsLoading" class="las la-search mr-1"></i>
+                <span>Buscar</span>
+            </button>
+            <button
+                class="btn-search-google-mini font-11px ml-1 px-2 py-1 rounded pointer d-flex align-items-center"
+                (click)="openGoogleSearch(manualLyricsQuery)"
+                matTooltip="Buscar este texto en Google"
+            >
+                <i class="lab la-google"></i>
+            </button>
+            <button
+                class="btn-close-lyrics-search ml-1 pointer border-0 bg-transparent secondary-text"
+                (click)="toggleManualLyricsSearch()"
+                matTooltip="Cerrar búsqueda"
+            >
+                <i class="las la-times font-14px"></i>
+            </button>
+        </div>
+
+        <div *ngIf="lyricsRejectedNotice" class="font-10px text-warning mt-1 d-flex align-items-center">
+            <i class="las la-exclamation-circle mr-1"></i>
+            <span>Letra descartada. Prueba con una de las sugerencias o escribe el nombre correcto.</span>
+        </div>
+
+        <div *ngIf="manualLyricsNotFound" class="font-10px text-danger mt-1">
+            No encontrada en los proveedores automáticos. ¡Haz clic en el botón de Google para buscarla en la web!
+        </div>
+
+        <!-- Sugerencias de búsqueda -->
+        <div *ngIf="lyricsSearchSuggestions.length > 0" class="d-flex align-items-center flex-wrap mt-1">
+            <span class="font-10px secondary-text mr-1">Sugerencias:</span>
+            <button
+                *ngFor="let suggestion of lyricsSearchSuggestions"
+                class="btn-suggestion-pill font-10px px-1 py-0 rounded pointer mr-1 mb-1"
+                (click)="performManualLyricsSearchAsync(suggestion)"
+                matTooltip="Buscar: {{ suggestion }}"
+            >
+                {{ suggestion }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenido de la Letra -->
+    <div #lyricsScrollContainer class="lyrics-content flex-grow overflow-auto pr-1 position-relative" (scroll)="onLyricsScroll()">
+        <!-- Cargando letra -->
+        <div *ngIf="isLyricsLoading || isManualLyricsLoading || isRomanizingLyrics" class="h-100 d-flex flex-column align-items-center justify-content-center secondary-text">
+            <mat-spinner [diameter]="28" class="mb-2"></mat-spinner>
+            <span class="font-11px">{{ isRomanizingLyrics ? 'Romanizando letra...' : 'Buscando letra...' }}</span>
+        </div>
+
+        <!-- Letra encontrada -->
+        <ng-container *ngIf="!isLyricsLoading && !isManualLyricsLoading && !isRomanizingLyrics && hasLyrics">
+            <!-- Modo Sincronizado (Seguimiento de oración y karaoke interactivo) -->
+            <div
+                *ngIf="hasRichLyrics && showRichLyrics"
+                class="synced-lyrics-container"
+            >
+                <ng-container *ngFor="let line of nowPlayingLyrics?.textLines; let i = index">
+                    <div
+                        *ngIf="isDisplayableLyricLine(i)"
+                        [id]="'lyric-line-' + i"
+                        class="lyric-line-item"
+                        [class.active]="activeLyricIndex === i"
+                        [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
+                        [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
+                        [class.passed]="activeLyricIndex > i"
+                        (click)="onLyricLineClickAsync(i)"
+                        [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
+                    >
+                        <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
+                        <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
+                            {{ getLineSubText(i) }}
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+
+            <!-- Modo Texto Completo (Scrollable plain text) -->
+            <div
+                *ngIf="!hasRichLyrics || !showRichLyrics"
+                class="plain-lyrics-container font-12px"
+            >
+                <ng-container *ngIf="lyricsTextMode === 'both' && nowPlayingLyrics?.textLines?.length">
+                    <div *ngFor="let line of nowPlayingLyrics.textLines; let i = index" class="mb-2">
+                        <div>{{ (nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().length > 0) ? nowPlayingLyrics.romanizedLines[i] : line }}</div>
+                        <div class="secondary-text font-11px" *ngIf="nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().toLowerCase() !== line.trim().toLowerCase()">{{ line }}</div>
+                    </div>
+                </ng-container>
+                <ng-container *ngIf="lyricsTextMode !== 'both' || !nowPlayingLyrics?.textLines?.length">
+                    {{ (lyricsTextMode === 'romaji' && nowPlayingLyrics?.romanizedPlainText) ? nowPlayingLyrics.romanizedPlainText : nowPlayingLyrics?.plainText }}
+                </ng-container>
+            </div>
+        </ng-container>
+
+        <!-- Sin letra encontrada -->
+        <div
+            *ngIf="!isLyricsLoading && !isManualLyricsLoading && !hasLyrics && playbackService.currentTrack"
+            class="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 secondary-text"
+        >
+            <i class="lar la-file-alt font-32px mb-2 secondary-text opacity-50"></i>
+            <div class="font-12px font-weight-bold mb-1">
+                {{ lyricsRejectedNotice ? 'Letra descartada' : 'Sin letra disponible' }}
+            </div>
+            <div class="font-10px mb-3" style="max-width: 250px; line-height: 1.4;">
+                {{ lyricsRejectedNotice ? 'Has indicado que la letra encontrada no era la correcta. Prueba con una de las sugerencias o pégala manualmente.' : 'No se encontró automáticamente en los proveedores de letras con los datos actuales del archivo.' }}
+            </div>
+
+            <div class="d-flex flex-column align-items-center w-100" style="max-width: 250px;">
+                <!-- Botón Ingresar / Pegar Letra -->
+                <button
+                    class="btn-enter-lyrics-prominent pointer d-flex align-items-center justify-content-center w-100 py-2 px-3 rounded font-11px font-weight-bold mb-2"
+                    (click)="openEnterLyricsDialog()"
+                    matRipple
+                >
+                    <i class="las la-pen font-14px mr-2"></i> Pegar o ingresar letra
+                </button>
+
+                <!-- Botón Buscar en Google -->
+                <button
+                    class="btn-google-search-prominent pointer d-flex align-items-center justify-content-center w-100 py-2 px-3 rounded font-11px font-weight-bold mb-2"
+                    (click)="openGoogleSearch()"
+                    matRipple
+                >
+                    <i class="lab la-google font-15px mr-2"></i> Buscar letra en Google
+                </button>
+
+                <!-- Botón Buscar manualmente -->
+                <button
+                    class="btn-manual-search-prominent pointer d-flex align-items-center justify-content-center w-100 py-1 px-3 rounded font-11px mb-2"
+                    (click)="toggleManualLyricsSearch()"
+                    matRipple
+                >
+                    <i class="las la-search font-13px mr-2"></i> Buscar por nombre o archivo
+                </button>
+            </div>
+
+            <!-- Sugerencias para buscar con un clic -->
+            <div *ngIf="lyricsSearchSuggestions.length > 0" class="mt-2 w-100" style="max-width: 270px;">
+                <div class="font-10px secondary-text mb-1">Probar con:</div>
+                <div class="d-flex flex-wrap justify-content-center">
+                    <button
+                        *ngFor="let suggestion of lyricsSearchSuggestions"
+                        class="btn-suggestion-pill font-10px px-2 py-1 rounded pointer m-1"
+                        (click)="performManualLyricsSearchAsync(suggestion)"
+                    >
+                        {{ suggestion }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sin canción en reproducción -->
+        <div
+            *ngIf="!isLyricsLoading && !isManualLyricsLoading && !playbackService.currentTrack"
+            class="h-100 d-flex flex-column align-items-center justify-content-center text-center p-3 secondary-text"
+        >
+            <i class="las la-music font-32px mb-2 secondary-text opacity-50"></i>
+            <div class="font-12px font-weight-bold mb-1">No hay pista en reproducción</div>
+            <div class="font-10px">Inicia la reproducción de una pista para ver su letra aquí</div>
+        </div>
+    </div>
+</div>

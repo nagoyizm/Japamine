@@ -148,7 +148,7 @@ export class KaraokeroAlignmentService {
     ): Promise<AlignedLineResult[]> {
         return new Promise((resolve, reject) => {
             const pythonScript = `
-import sys, json, os
+import sys, json, os, io
 
 sys.stdin.reconfigure(encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')
@@ -157,9 +157,13 @@ payload = json.loads(sys.stdin.read())
 audio_path = payload['audio_path']
 lyrics_lines = payload['lyrics_lines']
 lrc_output_path = payload.get('lrc_output_path')
-karaokero_dir = payload.get('karaokero_dir', r'D:\\Program Files\\karaokero')
+karaokero_dir = payload.get('karaokero_dir', r'D:\\\\Program Files\\\\karaokero')
 
 sys.path.append(karaokero_dir)
+
+# Redirect stdout during align_lyrics to prevent library logs from polluting JSON output
+old_stdout = sys.stdout
+sys.stdout = io.StringIO()
 
 try:
     from align import align_lyrics
@@ -167,8 +171,11 @@ try:
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     words = align_lyrics(audio_path, lyrics_lines, device=device)
 except Exception as e:
+    sys.stdout = old_stdout
     sys.stderr.write(f"Alignment error: {str(e)}\\n")
     sys.exit(1)
+
+sys.stdout = old_stdout
 
 # Group aligned words by line_index
 lines_start = {}
@@ -213,7 +220,7 @@ if lrc_output_path:
     except Exception:
         pass
 
-print(json.dumps(results))
+sys.stdout.write("___JSON_START___" + json.dumps(results) + "___JSON_END___")
 `;
             let stdout = '';
             let stderr = '';
@@ -228,7 +235,13 @@ print(json.dumps(results))
             proc.on('close', (code) => {
                 if (code === 0 && stdout) {
                     try {
-                        const parsed = JSON.parse(stdout) as AlignedLineResult[];
+                        const jsonMatch = stdout.match(/___JSON_START___([\s\S]*?)___JSON_END___/);
+                        if (jsonMatch && jsonMatch[1]) {
+                            const parsed = JSON.parse(jsonMatch[1]) as AlignedLineResult[];
+                            resolve(parsed);
+                            return;
+                        }
+                        const parsed = JSON.parse(stdout.trim()) as AlignedLineResult[];
                         resolve(parsed);
                         return;
                     } catch (err) {

@@ -31,6 +31,15 @@ export class CollectionTracksComponent implements OnInit, OnDestroy {
     ) {}
 
     public tracks: TrackModels = new TrackModels();
+    public leftPaneSize: number = 70;
+    public rightPaneSize: number = 30;
+
+    public splitDragEnd(event: any): void {
+        if (event?.sizes && event.sizes.length >= 2) {
+            this.leftPaneSize = event.sizes[0] as number;
+            this.rightPaneSize = event.sizes[1] as number;
+        }
+    }
 
     public ngOnDestroy(): void {
         this.subscription.unsubscribe();
