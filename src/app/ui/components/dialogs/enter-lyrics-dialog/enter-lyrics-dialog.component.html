@@ -30,7 +30,7 @@
 
 <mat-dialog-actions class="d-flex justify-content-between align-items-center pt-2">
     <div>
-        <app-transparent-button (click)="cancel()" [disabled]="isAligning">
+        <app-transparent-button (click)="cancel()" [ngClass]="{ inactive: isAligning }">
             {{ 'cancel' | translate }}
         </app-transparent-button>
     </div>
@@ -39,7 +39,7 @@
         <!-- Guardar plano -->
         <app-transparent-button
             class="mr-2"
-            [disabled]="!hasLyricsText || isAligning"
+            [ngClass]="{ inactive: !hasLyricsText || isAligning }"
             (click)="savePlainLyricsAsync()"
             matTooltip="Guardar la letra sin análisis de IA"
         >
@@ -48,7 +48,7 @@
 
         <!-- Sincronizar IA con Karaokero -->
         <app-accent-button
-            [disabled]="!hasLyricsText || isAligning"
+            [ngClass]="{ inactive: !hasLyricsText || isAligning }"
             (click)="syncWithAiAsync()"
             matTooltip="Escuchar la música y sincronizar los tiempos línea por línea con IA (Karaokero)"
         >
