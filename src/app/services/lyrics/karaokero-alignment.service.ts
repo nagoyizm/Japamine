@@ -153,6 +153,13 @@ import sys, json, os, io
 sys.stdin.reconfigure(encoding='utf-8')
 sys.stdout.reconfigure(encoding='utf-8')
 
+# Set process priority to BELOW_NORMAL so desktop, audio playback, and Electron never lag
+try:
+    import ctypes
+    ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x00004000)
+except Exception:
+    pass
+
 payload = json.loads(sys.stdin.read())
 audio_path = payload['audio_path']
 lyrics_lines = payload['lyrics_lines']
@@ -166,10 +173,24 @@ old_stdout = sys.stdout
 sys.stdout = io.StringIO()
 
 try:
-    from align import align_lyrics
     import torch
+    # Restrict CPU threads to avoid saturating all cores
+    torch.set_num_threads(min(4, os.cpu_count() or 4))
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device == 'cuda':
+        # Restrict PyTorch VRAM to 35% of total card memory so system & Electron stay fluid
+        try:
+            torch.cuda.set_per_process_memory_fraction(0.35, 0)
+        except Exception:
+            pass
+        torch.cuda.empty_cache()
+
+    from align import align_lyrics
     words = align_lyrics(audio_path, lyrics_lines, device=device)
+
+    if device == 'cuda':
+        torch.cuda.empty_cache()
 except Exception as e:
     sys.stdout = old_stdout
     sys.stderr.write(f"Alignment error: {str(e)}\\n")
@@ -225,7 +246,12 @@ sys.stdout.write("___JSON_START___" + json.dumps(results) + "___JSON_END___")
             let stdout = '';
             let stderr = '';
 
-            const proc = spawn(pythonPath, ['-c', pythonScript]);
+            const proc = spawn(pythonPath, ['-c', pythonScript], {
+                env: {
+                    ...process.env,
+                    PYTORCH_CUDA_ALLOC_CONF: 'expandable_segments:True',
+                },
+            });
             proc.stdout.setEncoding('utf-8');
             proc.stderr.setEncoding('utf-8');
 

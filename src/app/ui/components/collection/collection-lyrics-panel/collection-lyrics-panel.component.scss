@@ -360,6 +360,38 @@
         font-weight: 400;
     }
 
+    /* Aligned tokens: Romaji on top, Japanese character directly underneath */
+    .lyric-aligned-line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        row-gap: 4px;
+        column-gap: 6px;
+    }
+
+    .lyric-aligned-token {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        line-height: 1.15;
+
+        .token-main {
+            font-size: 11px;
+            color: var(--theme-primary-foreground);
+            font-weight: 400;
+            transition: color 0.3s ease, font-size 0.3s ease, font-weight 0.3s ease;
+        }
+
+        .token-sub {
+            font-size: 8.5px;
+            color: var(--theme-secondary-text);
+            opacity: 0.85;
+            margin-top: 1px;
+            white-space: nowrap;
+        }
+    }
+
     /* Active line: large, accent, bold */
     &.active {
         opacity: 1;
@@ -378,6 +410,22 @@
             color: var(--theme-secondary-text);
             margin-top: 3px;
         }
+
+        .lyric-aligned-token {
+            .token-main {
+                color: var(--theme-accent-color);
+                font-weight: 700;
+                font-size: 18px;
+                line-height: 1.25;
+            }
+
+            .token-sub {
+                font-size: 11.5px;
+                color: var(--theme-secondary-text);
+                opacity: 0.95;
+                margin-top: 2px;
+            }
+        }
     }
 
     /* Next line (active + 1): medium size */
@@ -389,6 +437,18 @@
             font-weight: 500;
             color: var(--theme-primary-foreground);
         }
+
+        .lyric-aligned-token {
+            .token-main {
+                font-size: 13.5px;
+                font-weight: 500;
+                color: var(--theme-primary-foreground);
+            }
+
+            .token-sub {
+                font-size: 9.5px;
+            }
+        }
     }
 
     /* Line after next (active + 2): slightly visible */
@@ -398,6 +458,17 @@
         .lyric-main-text {
             font-size: 12px;
             font-weight: 400;
+        }
+
+        .lyric-aligned-token {
+            .token-main {
+                font-size: 12px;
+                font-weight: 400;
+            }
+
+            .token-sub {
+                font-size: 9px;
+            }
         }
     }
 

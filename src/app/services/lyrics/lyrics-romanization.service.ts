@@ -3,7 +3,12 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import { Logger } from '../../common/logger';
 import { StringUtils } from '../../common/utils/string-utils';
-import { LyricsModel } from './lyrics-model';
+import { AlignedLyricToken, LyricsModel } from './lyrics-model';
+
+export interface DetailedRomanizationResult {
+    lines: string[];
+    tokens: AlignedLyricToken[][];
+}
 
 @Injectable({ providedIn: 'root' })
 export class LyricsRomanizationService {
@@ -15,7 +20,7 @@ export class LyricsRomanizationService {
     ];
 
     private activePythonPath: string | null | undefined = undefined;
-    private cache: Map<string, string[]> = new Map();
+    private cache: Map<string, DetailedRomanizationResult> = new Map();
 
     public constructor(private logger: Logger) {}
 
@@ -38,17 +43,19 @@ export class LyricsRomanizationService {
         const cacheKey = lines.join('\n');
         if (this.cache.has(cacheKey)) {
             const cached = this.cache.get(cacheKey)!;
-            lyrics.romanizedLines = [...cached];
-            lyrics.romanizedPlainText = cached.join('\n');
+            lyrics.romanizedLines = [...cached.lines];
+            lyrics.romanizedPlainText = cached.lines.join('\n');
+            lyrics.alignedTokens = cached.tokens.map((row) => [...row]);
             return;
         }
 
         try {
-            const romanized = await this.romanizeLinesAsync(lines);
-            if (romanized && romanized.length === lines.length) {
-                this.cache.set(cacheKey, romanized);
-                lyrics.romanizedLines = [...romanized];
-                lyrics.romanizedPlainText = romanized.join('\n');
+            const result = await this.romanizeLinesDetailedAsync(lines);
+            if (result && result.lines.length === lines.length) {
+                this.cache.set(cacheKey, result);
+                lyrics.romanizedLines = [...result.lines];
+                lyrics.romanizedPlainText = result.lines.join('\n');
+                lyrics.alignedTokens = result.tokens.map((row) => [...row]);
             }
         } catch (e: unknown) {
             this.logger.error(e, 'Could not romanize lyrics', 'LyricsRomanizationService', 'romanizeLyricsAsync');
@@ -56,36 +63,81 @@ export class LyricsRomanizationService {
     }
 
     public async romanizeLinesAsync(lines: string[]): Promise<string[]> {
+        const result = await this.romanizeLinesDetailedAsync(lines);
+        return result.lines;
+    }
+
+    public async romanizeLinesDetailedAsync(lines: string[]): Promise<DetailedRomanizationResult> {
         if (!lines || lines.length === 0) {
-            return [];
+            return { lines: [], tokens: [] };
         }
 
-        let romanized: string[] | undefined;
+        let result: DetailedRomanizationResult | undefined;
 
-        // 1. Try Cutlet via Karaokero Python venv (MeCab accurate morphological romanizer)
+        // 1. Try Cutlet via Karaokero Python venv (MeCab accurate morphological romanizer with token alignment)
         const pythonPath = this.getPythonPath();
         if (pythonPath) {
             try {
                 const cutletResults = await this.runCutletPythonAsync(pythonPath, lines);
-                if (cutletResults && cutletResults.length === lines.length) {
-                    romanized = cutletResults;
+                if (cutletResults && cutletResults.lines.length === lines.length) {
+                    result = cutletResults;
                 }
             } catch (e: unknown) {
-                this.logger.error(e, 'Cutlet execution failed, falling back to built-in Kana transliterator', 'LyricsRomanizationService', 'romanizeLinesAsync');
+                this.logger.error(e, 'Cutlet execution failed, falling back to built-in Kana transliterator', 'LyricsRomanizationService', 'romanizeLinesDetailedAsync');
             }
         }
 
-        if (!romanized) {
-            romanized = [...lines];
+        if (!result) {
+            const fallbackTokens: AlignedLyricToken[][] = [];
+            const fallbackLines: string[] = [];
+
+            for (const line of lines) {
+                const lineTokens = this.tokenizeFallback(line);
+                fallbackTokens.push(lineTokens);
+                fallbackLines.push(lineTokens.map((t) => t.romaji).join(' '));
+            }
+
+            result = {
+                lines: fallbackLines,
+                tokens: fallbackTokens,
+            };
         }
 
-        // 2. Transliterate any remaining Katakana or Hiragana characters in every line
-        return romanized.map((line) => {
-            if (this.containsJapanese(line)) {
-                return this.transliterateKanaToRomaji(line);
+        // 2. Transliterate any remaining Katakana or Hiragana characters in lines and tokens
+        for (let i = 0; i < result.lines.length; i++) {
+            if (this.containsJapanese(result.lines[i])) {
+                result.lines[i] = this.transliterateKanaToRomaji(result.lines[i]);
             }
-            return line;
-        });
+            if (result.tokens[i]) {
+                for (const tok of result.tokens[i]) {
+                    if (this.containsJapanese(tok.romaji)) {
+                        tok.romaji = this.transliterateKanaToRomaji(tok.romaji);
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public tokenizeFallback(line: string): AlignedLyricToken[] {
+        if (!line || !line.trim()) {
+            return [];
+        }
+
+        const parts = line.match(/[\u3040-\u309f]+|[\u30a0-\u30ff]+|[\u4e00-\u9faf]+|[a-zA-Z0-9]+|[^\s\w\u3040-\u9faf]+/g) || [line];
+        const tokens: AlignedLyricToken[] = [];
+
+        for (const part of parts) {
+            if (!part.trim()) continue;
+            const romaji = this.transliterateKanaToRomaji(part).trim();
+            tokens.push({
+                original: part,
+                romaji: romaji.length > 0 ? romaji : part,
+            });
+        }
+
+        return tokens;
     }
 
     private getPythonPath(): string | null {
@@ -108,7 +160,7 @@ export class LyricsRomanizationService {
         return null;
     }
 
-    private runCutletPythonAsync(pythonPath: string, lines: string[]): Promise<string[]> {
+    private runCutletPythonAsync(pythonPath: string, lines: string[]): Promise<DetailedRomanizationResult> {
         return new Promise((resolve, reject) => {
             const script = `
 import sys, json, cutlet
@@ -121,21 +173,38 @@ except Exception:
     sys.exit(2)
 
 lines = json.loads(sys.stdin.read())
-result = []
+result_lines = []
+result_tokens = []
 for l in lines:
     if not l:
-        result.append('')
+        result_lines.append('')
+        result_tokens.append([])
         continue
     try:
         if any('\\u3040' <= c <= '\\u9fff' or '\\uff66' <= c <= '\\uff9f' for c in l):
-            r = k.romaji(l)
-            result.append(r if r is not None else l)
+            toks = k.tagger(l)
+            line_toks = []
+            line_rom_parts = []
+            for t in toks:
+                s = t.surface
+                if not s.strip():
+                    continue
+                if any('\\u3040' <= c <= '\\u9fff' or '\\uff66' <= c <= '\\uff9f' for c in s):
+                    r = k.romaji_word(t)
+                else:
+                    r = s
+                line_toks.append({'original': s, 'romaji': r})
+                line_rom_parts.append(r)
+            result_tokens.append(line_toks)
+            result_lines.append(' '.join(line_rom_parts).strip())
         else:
-            result.append(l)
+            result_lines.append(l)
+            result_tokens.append([{'original': l, 'romaji': l}])
     except Exception:
-        result.append(l)
+        result_lines.append(l)
+        result_tokens.append([{'original': l, 'romaji': l}])
 
-print(json.dumps(result))
+print(json.dumps({'lines': result_lines, 'tokens': result_tokens}))
 `;
             let stdout = '';
             let stderr = '';
@@ -150,7 +219,7 @@ print(json.dumps(result))
             proc.on('close', (code) => {
                 if (code === 0 && stdout) {
                     try {
-                        const parsed = JSON.parse(stdout) as string[];
+                        const parsed = JSON.parse(stdout) as DetailedRomanizationResult;
                         resolve(parsed);
                         return;
                     } catch (err) {

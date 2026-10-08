@@ -1,9 +1,15 @@
 import { LyricsSourceType } from '../../common/api/lyrics/lyrics-source-type';
 import { TrackModel } from '../track/track-model';
 
+export interface AlignedLyricToken {
+    original: string;
+    romaji: string;
+}
+
 export class LyricsModel {
     public romanizedLines: string[] | undefined;
     public romanizedPlainText: string | undefined;
+    public alignedTokens: AlignedLyricToken[][] | undefined;
     public matchedTitle?: string;
     public matchedArtist?: string;
 

@@ -148,5 +148,25 @@ describe('CollectionLyricsPanelComponent', () => {
             expect(component.isConfirmingLyrics).toBe(false);
         });
     });
+
+    describe('getAlignedTokensForLine', () => {
+        it('should return null when not in both mode', () => {
+            component.lyricsTextMode = 'original';
+            component.nowPlayingLyrics = {
+                alignedTokens: [[{ original: '君', romaji: 'kimi' }]],
+            } as any;
+            expect(component.getAlignedTokensForLine(0)).toBeNull();
+        });
+
+        it('should return aligned tokens when in both mode and tokens exist', () => {
+            component.lyricsTextMode = 'both';
+            const sampleTokens = [{ original: '君', romaji: 'kimi' }, { original: 'の', romaji: 'no' }];
+            component.nowPlayingLyrics = {
+                alignedTokens: [sampleTokens],
+            } as any;
+            expect(component.getAlignedTokensForLine(0)).toEqual(sampleTokens);
+            expect(component.getAlignedTokensForLine(1)).toBeNull();
+        });
+    });
 });
 

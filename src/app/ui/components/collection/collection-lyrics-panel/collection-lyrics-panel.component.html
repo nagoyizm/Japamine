@@ -217,10 +217,18 @@
                         (click)="onLyricLineClickAsync(i)"
                         [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
                     >
-                        <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
-                        <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
-                            {{ getLineSubText(i) }}
+                        <div *ngIf="getAlignedTokensForLine(i) as tokens; else defaultSyncedLyricText" class="lyric-aligned-line">
+                            <span *ngFor="let token of tokens" class="lyric-aligned-token">
+                                <span class="token-main">{{ token.romaji }}</span>
+                                <span class="token-sub secondary-text" *ngIf="token.original && token.original.toLowerCase() !== token.romaji.toLowerCase()">{{ token.original }}</span>
+                            </span>
                         </div>
+                        <ng-template #defaultSyncedLyricText>
+                            <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
+                            <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
+                                {{ getLineSubText(i) }}
+                            </div>
+                        </ng-template>
                     </div>
                 </ng-container>
             </div>
@@ -231,9 +239,17 @@
                 class="plain-lyrics-container font-12px"
             >
                 <ng-container *ngIf="lyricsTextMode === 'both' && nowPlayingLyrics?.textLines?.length">
-                    <div *ngFor="let line of nowPlayingLyrics.textLines; let i = index" class="mb-2">
-                        <div>{{ (nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().length > 0) ? nowPlayingLyrics.romanizedLines[i] : line }}</div>
-                        <div class="secondary-text font-11px" *ngIf="nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().toLowerCase() !== line.trim().toLowerCase()">{{ line }}</div>
+                    <div *ngFor="let line of nowPlayingLyrics.textLines; let i = index" class="mb-3">
+                        <div *ngIf="getAlignedTokensForLine(i) as tokens; else fallbackPlainBoth" class="lyric-aligned-line">
+                            <span *ngFor="let token of tokens" class="lyric-aligned-token">
+                                <span class="token-main">{{ token.romaji }}</span>
+                                <span class="token-sub secondary-text font-10px" *ngIf="token.original && token.original.toLowerCase() !== token.romaji.toLowerCase()">{{ token.original }}</span>
+                            </span>
+                        </div>
+                        <ng-template #fallbackPlainBoth>
+                            <div>{{ (nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().length > 0) ? nowPlayingLyrics.romanizedLines[i] : line }}</div>
+                            <div class="secondary-text font-11px" *ngIf="nowPlayingLyrics.romanizedLines?.[i] && nowPlayingLyrics.romanizedLines[i].trim().toLowerCase() !== line.trim().toLowerCase()">{{ line }}</div>
+                        </ng-template>
                     </div>
                 </ng-container>
                 <ng-container *ngIf="lyricsTextMode !== 'both' || !nowPlayingLyrics?.textLines?.length">

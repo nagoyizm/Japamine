@@ -15,7 +15,7 @@ import { PlaybackService } from '../../../../services/playback/playback.service'
 import { LyricsServiceBase } from '../../../../services/lyrics/lyrics.service.base';
 import { KaraokeroAlignmentService } from '../../../../services/lyrics/karaokero-alignment.service';
 import { LyricsRomanizationService } from '../../../../services/lyrics/lyrics-romanization.service';
-import { LyricsModel } from '../../../../services/lyrics/lyrics-model';
+import { AlignedLyricToken, LyricsModel } from '../../../../services/lyrics/lyrics-model';
 import { TrackModel } from '../../../../services/track/track-model';
 import { LyricsSourceType } from '../../../../common/api/lyrics/lyrics-source-type';
 import { StringUtils } from '../../../../common/utils/string-utils';
@@ -680,6 +680,33 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
             return false;
         }
         return this.nowPlayingLyrics.textLines[index].trim().length > 0;
+    }
+
+    public getAlignedTokensForLine(index: number): AlignedLyricToken[] | null {
+        if (this.lyricsTextMode !== 'both' || this.nowPlayingLyrics == null) {
+            return null;
+        }
+
+        const tokens = this.nowPlayingLyrics.alignedTokens?.[index];
+        if (tokens && tokens.length > 0) {
+            return tokens;
+        }
+
+        // Fallback on-the-fly alignment if alignedTokens was not yet built
+        const orig = this.nowPlayingLyrics.textLines?.[index] ?? '';
+        const romaji = this.nowPlayingLyrics.romanizedLines?.[index];
+        if (orig && romaji && this.romanizationService && this.romanizationService.containsJapanese(orig)) {
+            const fallback = this.romanizationService.tokenizeFallback(orig);
+            if (fallback && fallback.length > 0) {
+                if (!this.nowPlayingLyrics.alignedTokens) {
+                    this.nowPlayingLyrics.alignedTokens = [];
+                }
+                this.nowPlayingLyrics.alignedTokens[index] = fallback;
+                return fallback;
+            }
+        }
+
+        return null;
     }
 
     public getLineMainText(index: number): string {
