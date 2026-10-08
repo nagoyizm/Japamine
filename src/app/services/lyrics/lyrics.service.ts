@@ -4,6 +4,7 @@ import { EmbeddedLyricsGetter } from './embedded-lyrics-getter';
 import { LrcLyricsGetter } from './lrc-lyrics-getter';
 import { OnlineLyricsGetter } from './online-lyrics-getter';
 import { StringUtils } from '../../common/utils/string-utils';
+import { LyricsFilterUtils } from '../../common/utils/lyrics-filter.utils';
 import { SettingsBase } from '../../common/settings/settings.base';
 import { LyricsModel } from './lyrics-model';
 import { Logger } from '../../common/logger';
@@ -39,6 +40,7 @@ export class LyricsService implements LyricsServiceBase {
         }
 
         if (result != null) {
+            LyricsFilterUtils.sanitizeLyricsModel(result, track);
             this.currentCandidates = [result];
             this.currentCandidateIndex = 0;
             if (this.romanizationService != null) {
@@ -57,6 +59,9 @@ export class LyricsService implements LyricsServiceBase {
                 if (typeof this.onlineLyricsGetter.getLyricsCandidatesAsync === 'function') {
                     const candidates = await this.onlineLyricsGetter.getLyricsCandidatesAsync(track);
                     if (candidates != null && candidates.length > 0) {
+                        for (const c of candidates) {
+                            LyricsFilterUtils.sanitizeLyricsModel(c, track);
+                        }
                         this.currentCandidates = candidates;
                         this.currentCandidateIndex = 0;
                         const best = candidates[0];
@@ -72,6 +77,7 @@ export class LyricsService implements LyricsServiceBase {
             }
 
             const onlineLyrics = await this.tryGetLyricsAsync(track, this.onlineLyricsGetter, 'online');
+            LyricsFilterUtils.sanitizeLyricsModel(onlineLyrics, track);
             this.cachedOnlineLyrics = onlineLyrics;
             if (!StringUtils.isNullOrWhiteSpace(onlineLyrics.plainText)) {
                 this.currentCandidates = [onlineLyrics];
@@ -94,6 +100,9 @@ export class LyricsService implements LyricsServiceBase {
             if (typeof this.onlineLyricsGetter.getLyricsCandidatesByQueryAsync === 'function') {
                 const candidates = await this.onlineLyricsGetter.getLyricsCandidatesByQueryAsync(query, track);
                 if (candidates != null && candidates.length > 0) {
+                    for (const c of candidates) {
+                        LyricsFilterUtils.sanitizeLyricsModel(c, track);
+                    }
                     this.currentCandidates = candidates;
                     this.currentCandidateIndex = 0;
                     const best = candidates[0];
@@ -106,6 +115,7 @@ export class LyricsService implements LyricsServiceBase {
             }
 
             const lyrics = await this.onlineLyricsGetter.getLyricsByQueryAsync(query, track);
+            LyricsFilterUtils.sanitizeLyricsModel(lyrics, track);
             if (!StringUtils.isNullOrWhiteSpace(lyrics.plainText)) {
                 this.currentCandidates = [lyrics];
                 this.currentCandidateIndex = 0;

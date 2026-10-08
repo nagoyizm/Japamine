@@ -44,6 +44,7 @@ import { KaraokeroAlignmentService } from '../../../../services/lyrics/karaokero
 import { OnlineLyricsGetter } from '../../../../services/lyrics/online-lyrics-getter';
 import { PlaybackProgress } from '../../../../services/playback/playback-progress';
 import { SwitchPlayerService } from '../../../../services/player-switcher/switch-player.service';
+import { LyricsFilterUtils } from '../../../../common/utils/lyrics-filter.utils';
 
 export interface FolderTreeNode {
     path: string;
@@ -929,6 +930,7 @@ export class CollectionFoldersComponent extends BaseVirtualScrollBrowser impleme
             this.nowPlayingLyrics = await this.lyricsService.getLyricsAsync(track);
 
             if (this.nowPlayingLyrics != null) {
+                LyricsFilterUtils.sanitizeLyricsModel(this.nowPlayingLyrics, track);
                 this.ensureLyricsTimings(this.nowPlayingLyrics);
             }
 
@@ -1216,6 +1218,14 @@ export class CollectionFoldersComponent extends BaseVirtualScrollBrowser impleme
             this.lyricsTextMode = 'romaji';
         }
         this.cd?.detectChanges();
+    }
+
+    public isDisplayableLyricLine(index: number): boolean {
+        if (this.nowPlayingLyrics?.textLines == null || index < 0 || index >= this.nowPlayingLyrics.textLines.length) {
+            return false;
+        }
+        const line = this.nowPlayingLyrics.textLines[index];
+        return !LyricsFilterUtils.isSectionHeaderOrMetadata(line, this.playbackService.currentTrack);
     }
 
     public getLineMainText(index: number): string {

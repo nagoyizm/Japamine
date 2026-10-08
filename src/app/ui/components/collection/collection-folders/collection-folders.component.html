@@ -676,22 +676,24 @@
                                         *ngIf="hasRichLyrics && showRichLyrics"
                                         class="synced-lyrics-container"
                                     >
-                                        <div
-                                            *ngFor="let line of nowPlayingLyrics?.textLines; let i = index"
-                                            [id]="'lyric-line-' + i"
-                                            class="lyric-line-item"
-                                            [class.active]="activeLyricIndex === i"
-                                            [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
-                                            [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
-                                            [class.passed]="activeLyricIndex > i"
-                                            (click)="onLyricLineClickAsync(i)"
-                                            [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
-                                        >
-                                            <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
-                                            <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
-                                                {{ getLineSubText(i) }}
+                                        <ng-container *ngFor="let line of nowPlayingLyrics?.textLines; let i = index">
+                                            <div
+                                                *ngIf="isDisplayableLyricLine(i)"
+                                                [id]="'lyric-line-' + i"
+                                                class="lyric-line-item"
+                                                [class.active]="activeLyricIndex === i"
+                                                [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
+                                                [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
+                                                [class.passed]="activeLyricIndex > i"
+                                                (click)="onLyricLineClickAsync(i)"
+                                                [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
+                                            >
+                                                <div class="lyric-main-text">{{ getLineMainText(i) }}</div>
+                                                <div *ngIf="getLineSubText(i)" class="lyric-sub-text secondary-text">
+                                                    {{ getLineSubText(i) }}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </ng-container>
                                     </div>
 
                                     <!-- Modo Texto Completo (Scrollable plain text) -->

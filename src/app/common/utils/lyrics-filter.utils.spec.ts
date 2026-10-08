@@ -87,5 +87,64 @@ Put a gun against his head`;
             const actual = LyricsFilterUtils.cleanLyricsText(input, track);
             expect(actual).toEqual(expected);
         });
+
+        it('should strip complex bracketed metadata headers like Japanese kashi tags', () => {
+            const input = `[Nakama Yukie (Yukie Nakama) "makenai ai ga kitto aru" Makenai Ai ga Kitto Aru kashi ]
+[Verse 1]
+Why? suki na kimochi wa surudoi toge
+Why? mayoi sugiruto jibun ni sasaru
+[Pre-Chorus]
+Dakishimete kureru yori
+[Chorus]
+Makenai ai da tte`;
+
+            const track = {
+                title: 'Makenai Ai ga Kitto aru',
+                artists: 'Nakama Yukie',
+            };
+
+            const expected = `Why? suki na kimochi wa surudoi toge
+Why? mayoi sugiruto jibun ni sasaru
+
+Dakishimete kureru yori
+
+Makenai ai da tte`;
+
+            const actual = LyricsFilterUtils.cleanLyricsText(input, track);
+            expect(actual).toEqual(expected);
+        });
+    });
+
+    describe('sanitizeLyricsModel', () => {
+        it('should sanitize timed lyrics model removing section headers from textLines and timestamps', () => {
+            const model = {
+                plainText: '',
+                textLines: [
+                    '[Nakama Yukie (Yukie Nakama) "makenai ai ga kitto aru" Makenai Ai ga Kitto Aru kashi ]',
+                    '[Verse 1]',
+                    'Why? suki na kimochi wa surudoi toge',
+                    '[Pre-Chorus]',
+                    'Dakishimete kureru yori',
+                    '[Chorus]',
+                    'Makenai ai da tte',
+                ],
+                startTimeStamps: [0, 5, 10, 45, 48, 70, 75],
+                romanizedLines: undefined,
+            };
+
+            const track = {
+                title: 'Makenai Ai ga Kitto aru',
+                artists: 'Nakama Yukie',
+            };
+
+            LyricsFilterUtils.sanitizeLyricsModel(model as any, track);
+
+            expect(model.textLines).toEqual([
+                'Why? suki na kimochi wa surudoi toge',
+                'Dakishimete kureru yori',
+                'Makenai ai da tte',
+            ]);
+            expect(model.startTimeStamps).toEqual([10, 48, 75]);
+        });
     });
 });

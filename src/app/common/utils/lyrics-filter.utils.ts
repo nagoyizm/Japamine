@@ -133,6 +133,119 @@ export class LyricsFilterUtils {
     }
 
     /**
+     * Checks if a line is a section header, structural tag, or non-sung metadata header.
+     * Examples that return true:
+     * - [Verse 1], [Verse], [Chorus], [Bridge], [Intro], [Outro], [Pre-Chorus], [Post-Chorus], [Hook], [Solo]
+     * - (Chorus), (Verse 1), (Bridge)
+     * - [Verse 1: Nakama Yukie], [Chorus - Artist]
+     * - [Nakama Yukie (Yukie Nakama) "makenai ai ga kitto aru" Makenai Ai ga Kitto Aru kashi ]
+     * - [ti: Makenai Ai ga Kitto aru], [ar: Nakama Yukie], [al: ...], [by: ...]
+     * - Artist: Nakama Yukie, Title: Makenai Ai ga Kitto aru, Song: ...
+     * - Empty or whitespace-only lines
+     */
+    public static isSectionHeaderOrMetadata(
+        line: string | undefined,
+        track?: { title?: string; artists?: string; rawTitle?: string; rawFirstArtist?: string },
+    ): boolean {
+        if (!line || line.trim().length === 0) {
+            return true;
+        }
+
+        const trimmed = line.trim();
+
+        // 1. Standard section headers: [Verse 1], [Chorus], (Bridge), [Pre-Chorus], [Coro], etc.
+        const sectionHeaderRegex = /^\s*(\[|\()\s*(verse|chorus|bridge|intro|outro|pre-chorus|post-chorus|hook|refrain|interlude|solo|guitar solo|instrumental|estrofa|coro|puente|letra de|letra|lyrics|part\s+\d+|part\s+[ivx]+|drop|break|skit)\b[^\r\n\]\)]*(\]|\))\s*$/i;
+        if (sectionHeaderRegex.test(trimmed)) {
+            return true;
+        }
+
+        // 2. Standard LRC metadata tags: [ti:...], [ar:...], [al:...], [by:...], [offset:...], [length:...]
+        const lrcTagRegex = /^\s*\[(ti|ar|al|by|offset|length|re|ve)\s*:[^\]]*\]\s*$/i;
+        if (lrcTagRegex.test(trimmed)) {
+            return true;
+        }
+
+        // 3. Metadata prefix lines: Artist: ..., Title: ..., Album: ..., etc.
+        const metadataPrefixRegex = /^\s*(\[?(artist|title|album|song|track|composer|written by|lyrics by|produced by|arranged by|letra de|artista|canción|cancion|álbum|album)\]?\s*[:\-–—])/i;
+        if (metadataPrefixRegex.test(trimmed)) {
+            return true;
+        }
+
+        // 4. Bracketed lines: any line starting with [ and ending with ]
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            const inner = trimmed.substring(1, trimmed.length - 1).trim();
+            const lowerInner = inner.toLowerCase();
+
+            // Check if inner content contains metadata keywords: kashi (歌詞), lyrics, letra, etc.
+            if (/\b(kashi|lyrics|letra|paroles|written by|produced by|arranged by|composed by|album|artist|track)\b/i.test(lowerInner)) {
+                return true;
+            }
+
+            // Check if inner content contains section keywords anywhere
+            if (/\b(verse|chorus|bridge|intro|outro|hook|interlude|solo|estrofa|coro|puente)\b/i.test(lowerInner)) {
+                return true;
+            }
+
+            // If track is provided, check if inner content mentions the artist or title
+            if (track) {
+                const candidates: string[] = [];
+                if (typeof track.title === 'string' && track.title.trim().length > 2) {
+                    candidates.push(track.title.trim().toLowerCase());
+                }
+                if (typeof track.rawTitle === 'string' && track.rawTitle.trim().length > 2) {
+                    candidates.push(track.rawTitle.trim().toLowerCase());
+                }
+                if (typeof track.artists === 'string' && track.artists.trim().length > 2) {
+                    candidates.push(track.artists.trim().toLowerCase());
+                }
+                if (typeof track.rawFirstArtist === 'string' && track.rawFirstArtist.trim().length > 2) {
+                    candidates.push(track.rawFirstArtist.trim().toLowerCase());
+                }
+
+                if (candidates.some((c) => lowerInner.includes(c))) {
+                    return true;
+                }
+            }
+
+            // Generic bracketed tag without Japanese text (e.g. [Instrumental], [Music], [Fade out], [Theme])
+            if (!LyricsFilterUtils.containsJapanese(inner) && (inner.length < 40 || !inner.includes(' '))) {
+                return true;
+            }
+        }
+
+        // 5. Exact match with candidate titles or artists
+        if (track) {
+            const lower = trimmed.toLowerCase();
+            const candTitles: string[] = [];
+            const candArtists: string[] = [];
+
+            if (typeof track.title === 'string' && track.title.trim().length > 2) { candTitles.push(track.title.trim().toLowerCase()); }
+            if (typeof track.rawTitle === 'string' && track.rawTitle.trim().length > 2) { candTitles.push(track.rawTitle.trim().toLowerCase()); }
+            if (typeof track.artists === 'string' && track.artists.trim().length > 2) { candArtists.push(track.artists.trim().toLowerCase()); }
+            if (typeof track.rawFirstArtist === 'string' && track.rawFirstArtist.trim().length > 2) { candArtists.push(track.rawFirstArtist.trim().toLowerCase()); }
+
+            if (candTitles.includes(lower) || candArtists.includes(lower)) {
+                return true;
+            }
+
+            // Composite "Artist - Title" or "Title - Artist"
+            if (candTitles.some((t) => candArtists.some((a) => lower.includes(t) && lower.includes(a)))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Strips leading inline section tags, e.g. "[Chorus] Sing..." -> "Sing...".
+     */
+    public static cleanInlineSectionTags(line: string): string {
+        const inlineSectionTagRegex = /^\s*(\[|\()\s*(verse|chorus|bridge|intro|outro|pre-chorus|post-chorus|hook|refrain|interlude|solo|guitar solo|instrumental|estrofa|coro|puente)\b[^\r\n\]\)]*(\]|\))\s*/i;
+        return line.replace(inlineSectionTagRegex, '').trim();
+    }
+
+    /**
      * Cleans raw lyrics text:
      * 1. Strips leading metadata headers (e.g. "Artist - Title", "Title: ...", "Artist: ...").
      * 2. Replaces section headers (e.g. "[Verse 1]", "[Chorus]", "[Bridge]") with a blank line separator.
@@ -147,88 +260,36 @@ export class LyricsFilterUtils {
             return '';
         }
 
-        // Section header patterns: e.g. [Verse 1], [Chorus], (Bridge), [Intro], [Outro], [Pre-Chorus], [Hook], [Solo], [Coro], [Estrofa]
-        const sectionHeaderRegex = /^\s*(\[|\()\s*(verse|chorus|bridge|intro|outro|pre-chorus|post-chorus|hook|refrain|interlude|solo|guitar solo|instrumental|estrofa|coro|puente|letra de|letra|lyrics|part\s+\d+|part\s+[ivx]+|drop|break|skit)\b[^\r\n\]\)]*(\]|\))\s*$/i;
-        // Generic bracketed header line: e.g. [Verse], [Chorus: Artist], [Bridge 2]
-        const genericBracketHeaderRegex = /^\s*\[[A-Za-z0-9\s\-_.:/]+\]\s*$/;
-
-        // Inline section tag to remove from a line: e.g. "[Chorus] Some singing" -> "Some singing"
-        const inlineSectionTagRegex = /^\s*(\[|\()\s*(verse|chorus|bridge|intro|outro|pre-chorus|post-chorus|hook|refrain|interlude|solo|guitar solo|instrumental|estrofa|coro|puente)\b[^\r\n\]\)]*(\]|\))\s*/i;
-
-        // Metadata line prefix: e.g. "Artist: ...", "Title: ...", "Song: ...", "Lyrics by: ..."
-        const metadataPrefixRegex = /^\s*(\[?(artist|title|album|song|track|composer|written by|lyrics by|produced by|arranged by|letra de|artista|canción|cancion|álbum|album)\]?\s*[:\-–—])/i;
-
         const rawLines = rawText.split(/\r?\n/);
         const processedLines: string[] = [];
-
-        // Track matching strings for header elimination
-        const candidateTitles: string[] = [];
-        const candidateArtists: string[] = [];
-
-        if (track) {
-            if (typeof track.title === 'string') { candidateTitles.push(track.title.trim().toLowerCase()); }
-            if (typeof track.rawTitle === 'string') { candidateTitles.push(track.rawTitle.trim().toLowerCase()); }
-            if (typeof track.artists === 'string') { candidateArtists.push(track.artists.trim().toLowerCase()); }
-            if (typeof track.rawFirstArtist === 'string') { candidateArtists.push(track.rawFirstArtist.trim().toLowerCase()); }
-        }
-
         let isBeginning = true;
 
         for (const line of rawLines) {
             let trimmed = line.trim();
 
             if (trimmed.length === 0) {
-                // If we are at the very beginning, skip empty lines
                 if (!isBeginning) {
                     processedLines.push('');
                 }
                 continue;
             }
 
-            // Check if line is at the beginning and contains title/artist metadata
-            if (isBeginning) {
-                // Check metadata prefix (e.g. "Artist: Foo", "Title: Bar")
-                if (metadataPrefixRegex.test(trimmed)) {
-                    continue;
-                }
-
-                const lowerLine = trimmed.toLowerCase();
-
-                // Check exact match with artist or title
-                const matchesTitle = candidateTitles.some((t) => t.length > 2 && (lowerLine === t || lowerLine.replace(/['"«»]/g, '') === t));
-                const matchesArtist = candidateArtists.some((a) => a.length > 2 && (lowerLine === a || lowerLine.replace(/['"«»]/g, '') === a));
-
-                // Check composite "Artist - Title" or "Title - Artist" or "Title by Artist"
-                const matchesComposite = candidateTitles.some((t) =>
-                    candidateArtists.some((a) => {
-                        if (t.length < 2 || a.length < 2) { return false; }
-                        return lowerLine.includes(t) && lowerLine.includes(a);
-                    }),
-                );
-
-                if (matchesTitle || matchesArtist || matchesComposite) {
-                    continue;
-                }
-            }
-
-            // Check if line is a section header like [Verse 1], [Chorus], etc.
-            if (sectionHeaderRegex.test(trimmed) || genericBracketHeaderRegex.test(trimmed)) {
-                // Convert section header to a line break separator (empty line) if not at start
+            // Check if this line is a section header or metadata line
+            if (LyricsFilterUtils.isSectionHeaderOrMetadata(trimmed, track)) {
+                // If not at the beginning, turn section headers into a stanza break
                 if (!isBeginning) {
                     processedLines.push('');
                 }
                 continue;
             }
 
-            // If line contains inline tag at beginning, e.g. "[Chorus] Hello"
-            if (inlineSectionTagRegex.test(trimmed)) {
-                trimmed = trimmed.replace(inlineSectionTagRegex, '').trim();
-                if (trimmed.length === 0) {
-                    if (!isBeginning) {
-                        processedLines.push('');
-                    }
-                    continue;
+            // Clean inline tag if present, e.g. "[Chorus] Suki na..." -> "Suki na..."
+            trimmed = LyricsFilterUtils.cleanInlineSectionTags(trimmed);
+            if (trimmed.length === 0) {
+                if (!isBeginning) {
+                    processedLines.push('');
                 }
+                continue;
             }
 
             // This line is actual lyrics!
@@ -254,5 +315,69 @@ export class LyricsFilterUtils {
         }
 
         return resultLines.join('\n').trim();
+    }
+
+    /**
+     * Sanitizes a LyricsModel in place:
+     * - Cleans plainText (strips metadata headers, converts section headers to blank line separators).
+     * - Filters out section headers, metadata lines, and empty lines from textLines, startTimeStamps,
+     *   endTimeStamps, and romanizedLines so only real singing lines remain.
+     */
+    public static sanitizeLyricsModel<T extends {
+        plainText?: string;
+        textLines?: string[];
+        startTimeStamps?: number[];
+        endTimeStamps?: number[];
+        romanizedLines?: string[];
+        track?: { title?: string; artists?: string; rawTitle?: string; rawFirstArtist?: string };
+    }>(lyrics: T | undefined, trackOverride?: { title?: string; artists?: string; rawTitle?: string; rawFirstArtist?: string }): T | undefined {
+        if (!lyrics) {
+            return lyrics;
+        }
+
+        const track = trackOverride ?? lyrics.track;
+
+        // 1. Sanitize plain text
+        if (lyrics.plainText) {
+            lyrics.plainText = LyricsFilterUtils.cleanLyricsText(lyrics.plainText, track);
+        }
+
+        // 2. Sanitize timed lines if present
+        if (Array.isArray(lyrics.textLines) && lyrics.textLines.length > 0) {
+            const hasStartTimes = Array.isArray(lyrics.startTimeStamps) && lyrics.startTimeStamps.length === lyrics.textLines.length;
+            const hasEndTimes = Array.isArray(lyrics.endTimeStamps) && lyrics.endTimeStamps.length === lyrics.textLines.length;
+            const hasRomaji = Array.isArray(lyrics.romanizedLines) && lyrics.romanizedLines.length === lyrics.textLines.length;
+
+            const cleanTextLines: string[] = [];
+            const cleanStartTimes: number[] = [];
+            const cleanEndTimes: number[] = [];
+            const cleanRomaji: string[] = [];
+
+            for (let i = 0; i < lyrics.textLines.length; i++) {
+                const rawLine = lyrics.textLines[i];
+                const trimmed = LyricsFilterUtils.cleanInlineSectionTags(rawLine);
+
+                // Skip lines that are purely section headers or non-sung metadata
+                if (LyricsFilterUtils.isSectionHeaderOrMetadata(trimmed, track)) {
+                    continue;
+                }
+
+                cleanTextLines.push(trimmed);
+                if (hasStartTimes) { cleanStartTimes.push(lyrics.startTimeStamps![i]); }
+                if (hasEndTimes) { cleanEndTimes.push(lyrics.endTimeStamps![i]); }
+                if (hasRomaji) { cleanRomaji.push(lyrics.romanizedLines![i]); }
+            }
+
+            lyrics.textLines = cleanTextLines;
+            if (hasStartTimes) { lyrics.startTimeStamps = cleanStartTimes; }
+            if (hasEndTimes) { lyrics.endTimeStamps = cleanEndTimes; }
+            if (hasRomaji) { lyrics.romanizedLines = cleanRomaji; }
+
+            if (!lyrics.plainText && cleanTextLines.length > 0) {
+                lyrics.plainText = cleanTextLines.join('\n');
+            }
+        }
+
+        return lyrics;
     }
 }

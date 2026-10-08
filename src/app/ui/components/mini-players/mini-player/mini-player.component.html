@@ -103,20 +103,22 @@
             class="mini-synced-lyrics flex-grow overflow-auto px-3"
             (scroll)="onLyricsScroll()"
         >
-            <div
-                *ngFor="let line of nowPlayingLyrics?.textLines; let i = index"
-                [id]="'mini-lyric-line-' + i"
-                class="mini-lyric-line pointer"
-                [class.active]="activeLyricIndex === i"
-                [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
-                [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
-                [class.passed]="activeLyricIndex > i"
-                (click)="onLyricLineClickAsync(i)"
-                [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
-            >
-                <div class="mini-lyric-main">{{ getLineMainText(i) }}</div>
-                <div *ngIf="getLineSubText(i)" class="mini-lyric-sub secondary-text">{{ getLineSubText(i) }}</div>
-            </div>
+            <ng-container *ngFor="let line of nowPlayingLyrics?.textLines; let i = index">
+                <div
+                    *ngIf="isDisplayableLyricLine(i)"
+                    [id]="'mini-lyric-line-' + i"
+                    class="mini-lyric-line pointer"
+                    [class.active]="activeLyricIndex === i"
+                    [class.lyric-next]="activeLyricIndex >= 0 && i === activeLyricIndex + 1"
+                    [class.lyric-soon]="activeLyricIndex >= 0 && i === activeLyricIndex + 2"
+                    [class.passed]="activeLyricIndex > i"
+                    (click)="onLyricLineClickAsync(i)"
+                    [matTooltip]="nowPlayingLyrics?.startTimeStamps?.[i] !== undefined ? ('Saltar a ' + formatTimestamp(nowPlayingLyrics?.startTimeStamps?.[i])) : ''"
+                >
+                    <div class="mini-lyric-main">{{ getLineMainText(i) }}</div>
+                    <div *ngIf="getLineSubText(i)" class="mini-lyric-sub secondary-text">{{ getLineSubText(i) }}</div>
+                </div>
+            </ng-container>
         </div>
 
         <!-- Letra en texto plano -->

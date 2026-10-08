@@ -4,6 +4,7 @@ import { ILyricsGetter } from './i-lyrics-getter';
 import { LyricsModel } from './lyrics-model';
 import { LyricsSourceType } from '../../common/api/lyrics/lyrics-source-type';
 import { StringUtils } from '../../common/utils/string-utils';
+import { LyricsFilterUtils } from '../../common/utils/lyrics-filter.utils';
 import { FileAccessBase } from '../../common/io/file-access.base';
 
 @Injectable()
@@ -31,7 +32,12 @@ export class LrcLyricsGetter implements ILyricsGetter {
                 continue;
             }
 
-            const textContent: string = line.replace(LrcLyricsGetter.timestampRegex, '');
+            const rawTextContent: string = line.replace(LrcLyricsGetter.timestampRegex, '').trim();
+            const textContent: string = LyricsFilterUtils.cleanInlineSectionTags(rawTextContent);
+
+            if (LyricsFilterUtils.isSectionHeaderOrMetadata(textContent, track)) {
+                continue;
+            }
 
             for (const ts of timestamps) {
                 lyricLines.push(textContent);

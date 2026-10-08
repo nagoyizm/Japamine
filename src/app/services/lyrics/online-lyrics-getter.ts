@@ -1066,9 +1066,11 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                 continue;
             }
 
-            let textContent: string = line.replace(OnlineLyricsGetter.timestampRegex, '').trim();
-            if (!StringUtils.isNullOrWhiteSpace(textContent)) {
-                textContent = LyricsFilterUtils.cleanLyricsText(textContent, track);
+            const rawTextContent: string = line.replace(OnlineLyricsGetter.timestampRegex, '').trim();
+            const textContent: string = LyricsFilterUtils.cleanInlineSectionTags(rawTextContent);
+
+            if (LyricsFilterUtils.isSectionHeaderOrMetadata(textContent, track)) {
+                continue;
             }
 
             for (const ts of timestamps) {

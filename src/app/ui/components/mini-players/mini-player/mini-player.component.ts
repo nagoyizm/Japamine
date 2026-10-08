@@ -19,6 +19,7 @@ import { TrackModel } from '../../../../services/track/track-model';
 import { TrackServiceBase } from '../../../../services/track/track.service.base';
 import { LyricsRomanizationService } from '../../../../services/lyrics/lyrics-romanization.service';
 import { KaraokeroAlignmentService } from '../../../../services/lyrics/karaokero-alignment.service';
+import { LyricsFilterUtils } from '../../../../common/utils/lyrics-filter.utils';
 import { PromiseUtils } from '../../../../common/utils/promise-utils';
 import { SwitchPlayerService } from '../../../../services/player-switcher/switch-player.service';
 import { ApplicationBase } from '../../../../common/io/application.base';
@@ -389,6 +390,14 @@ export class MiniPlayerComponent implements OnInit, OnDestroy {
         }, 3500);
     }
 
+    public isDisplayableLyricLine(index: number): boolean {
+        if (this.nowPlayingLyrics?.textLines == null || index < 0 || index >= this.nowPlayingLyrics.textLines.length) {
+            return false;
+        }
+        const line = this.nowPlayingLyrics.textLines[index];
+        return !LyricsFilterUtils.isSectionHeaderOrMetadata(line, this.playbackService.currentTrack);
+    }
+
     public getLineMainText(index: number): string {
         if (this.nowPlayingLyrics == null) { return ''; }
         const orig = this.nowPlayingLyrics.textLines?.[index] ?? '';
@@ -557,7 +566,11 @@ export class MiniPlayerComponent implements OnInit, OnDestroy {
         if (matches.length === 0) {
             return undefined;
         }
-        const cleanText = line.replace(/\[\d{1,3}:\d{2}[.:]\d{2,3}\]/g, '').trim();
+        const rawClean = line.replace(/\[\d{1,3}:\d{2}[.:]\d{2,3}\]/g, '').trim();
+        const cleanText = LyricsFilterUtils.cleanInlineSectionTags(rawClean);
+        if (LyricsFilterUtils.isSectionHeaderOrMetadata(cleanText, this.playbackService.currentTrack)) {
+            return undefined;
+        }
         return { cleanText, timestamps: matches };
     }
 

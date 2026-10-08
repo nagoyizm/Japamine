@@ -208,4 +208,89 @@ export class LrclibApi {
     private cleanString(str: string): string {
         return str.trim();
     }
+
+    public async publishLyricsAsync(
+        request: {
+            trackName: string;
+            artistName: string;
+            albumName?: string;
+            duration?: number;
+            plainLyrics?: string;
+            syncedLyrics?: string;
+        },
+        onProgress?: (status: string) => void,
+    ): Promise<{ success: boolean; error?: string }> {
+        if (StringUtils.isNullOrWhiteSpace(request.trackName) || StringUtils.isNullOrWhiteSpace(request.artistName)) {
+            return { success: false, error: 'Título y artista son obligatorios' };
+        }
+
+        try {
+            onProgress?.('Obteniendo verificación de LRCLIB...');
+            const challenge = await this.httpClient
+                .post<{ prefix: string; target: string }>(
+                    `${LrclibApi.baseUrl}/request-challenge`,
+                    {},
+                    {
+                        headers: {
+                            'User-Agent': 'Japamine/3.0.13 (https://github.com/nagoyizm/japamine)',
+                        },
+                    },
+                )
+                .toPromise();
+
+            if (!challenge || !challenge.prefix || !challenge.target) {
+                return { success: false, error: 'No se pudo obtener el desafío de verificación' };
+            }
+
+            onProgress?.('Resolviendo verificación anti-spam (PoW)...');
+            const token = await this.solvePoWChallengeAsync(challenge.prefix, challenge.target);
+
+            onProgress?.('Publicando letra en LRCLIB...');
+            await this.httpClient
+                .post(
+                    `${LrclibApi.baseUrl}/publish`,
+                    request,
+                    {
+                        headers: {
+                            'X-Publish-Token': token,
+                            'User-Agent': 'Japamine/3.0.13 (https://github.com/nagoyizm/japamine)',
+                        },
+                    },
+                )
+                .toPromise();
+
+            return { success: true };
+        } catch (e: any) {
+            const msg = e?.error?.message || e?.message || 'Error al publicar en LRCLIB';
+            return { success: false, error: msg };
+        }
+    }
+
+    private async solvePoWChallengeAsync(prefix: string, targetHex: string): Promise<string> {
+        const target = targetHex.toLowerCase();
+        let nonce = 0;
+        let crypto: any;
+        try {
+            crypto = require('crypto');
+        } catch {
+            // fallback
+        }
+
+        while (true) {
+            if (!crypto) {
+                throw new Error('Módulo crypto no disponible');
+            }
+
+            const hashHex = crypto.createHash('sha256').update(prefix + nonce).digest('hex');
+            if (hashHex <= target) {
+                return `${prefix}:${nonce}`;
+            }
+
+            nonce++;
+
+            if (nonce % 50000 === 0) {
+                await new Promise((resolve) => setTimeout(resolve, 0));
+            }
+        }
+    }
 }

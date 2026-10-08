@@ -22,16 +22,39 @@
         <textarea
             class="lyrics-textarea"
             [(ngModel)]="lyricsText"
-            [disabled]="isAligning"
+            [disabled]="isAligning || isPublishing"
             placeholder="Pega aquí la letra que encontraste en Google (línea por línea)..."
             rows="12"
         ></textarea>
     </div>
 
-    <!-- Indicador de progreso de IA -->
-    <div *ngIf="isAligning" class="status-box d-flex align-items-center mt-2 p-2 rounded">
+    <!-- Opción de compartir con la comunidad -->
+    <div class="d-flex align-items-center justify-content-between mt-2 flex-wrap">
+        <label class="font-11px secondary-text d-flex align-items-center mb-0 pointer" matTooltip="Al sincronizar o guardar, se compartirá automáticamente con la comunidad abierta de LRCLIB">
+            <input type="checkbox" [(ngModel)]="shareWithCommunity" class="mr-1" [disabled]="isAligning || isPublishing">
+            <span>Compartir con la comunidad abierta (LRCLIB)</span>
+        </label>
+        <button
+            type="button"
+            mat-button
+            class="btn-publish-now font-10px px-2 py-0 border rounded pointer"
+            (click)="publishCurrentLyricsToLrclibAsync()"
+            [disabled]="!hasLyricsText || isAligning || isPublishing"
+            matTooltip="Subir esta versión de texto ahora mismo a LRCLIB"
+        >
+            <i class="las la-cloud-upload-alt mr-1"></i> Subir a LRCLIB ahora
+        </button>
+    </div>
+
+    <!-- Indicador de progreso de IA o publicación -->
+    <div *ngIf="isAligning || isPublishing" class="status-box d-flex align-items-center mt-2 p-2 rounded">
         <mat-spinner [diameter]="22" class="mr-2"></mat-spinner>
         <span class="font-12px">{{ statusMessage }}</span>
+    </div>
+
+    <!-- Mensaje de éxito de publicación -->
+    <div *ngIf="publishSuccessMessage" class="status-box text-success d-flex align-items-center mt-2 p-2 rounded font-12px">
+        <i class="las la-check-circle mr-1 font-14px"></i> {{ publishSuccessMessage }}
     </div>
 
     <!-- Mensaje de error -->
