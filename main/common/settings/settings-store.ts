@@ -7,8 +7,6 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import { DEFAULT_SETTINGS } from './default-settings';
 
-const SETTINGS_FILE = path.join(app.getPath('userData'), 'config.json');
-
 export class SettingsStore {
     private data: Record<string, any> = {};
 
@@ -17,12 +15,25 @@ export class SettingsStore {
         this.applyDefaults();
     }
 
+    private getSettingsFilePath(): string {
+        return path.join(app.getPath('userData'), 'config.json');
+    }
+
     private load() {
         try {
-            if (fs.existsSync(SETTINGS_FILE)) {
-                const content = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+            const filePath = this.getSettingsFilePath();
+            if (fs.existsSync(filePath)) {
+                const content = fs.readFileSync(filePath, 'utf-8');
                 if (content.trim().length > 0) {
                     this.data = JSON.parse(content);
+                }
+            } else {
+                const legacyPath = path.join(app.getPath('appData'), 'Dopamine', 'config.json');
+                if (fs.existsSync(legacyPath)) {
+                    const content = fs.readFileSync(legacyPath, 'utf-8');
+                    if (content.trim().length > 0) {
+                        this.data = JSON.parse(content);
+                    }
                 }
             }
         } catch (err) {
@@ -39,14 +50,28 @@ export class SettingsStore {
                 changed = true;
             }
         }
+
+        const legacyPath = path.join(app.getPath('appData'), 'Dopamine', 'config.json');
+        if (fs.existsSync(legacyPath)) {
+            try {
+                const legacy = JSON.parse(fs.readFileSync(legacyPath, 'utf-8'));
+                if (legacy.closeToNotificationArea === true && this.data.closeToNotificationArea !== true) {
+                    this.data.closeToNotificationArea = true;
+                    changed = true;
+                }
+            } catch {}
+        }
+
         if (changed) this.save();
     }
 
     private save() {
         try {
-            const tmpPath = SETTINGS_FILE + '.tmp';
+            const filePath = this.getSettingsFilePath();
+            fs.ensureDirSync(path.dirname(filePath));
+            const tmpPath = filePath + '.tmp';
             fs.writeFileSync(tmpPath, JSON.stringify(this.data, null, 2), 'utf-8');
-            fs.renameSync(tmpPath, SETTINGS_FILE);
+            fs.renameSync(tmpPath, filePath);
         } catch (err) {
             console.error('Failed to save settings:', err);
         }

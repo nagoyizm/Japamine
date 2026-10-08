@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
     enableListenbrainzScrobbling: false,
     showIconInNotificationArea: true,
     minimizeToNotificationArea: false,
-    closeToNotificationArea: false,
+    closeToNotificationArea: true,
     invertNotificationAreaIconColor: false,
     showArtistsPage: true,
     showGenresPage: true,

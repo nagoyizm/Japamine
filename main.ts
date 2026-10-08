@@ -187,7 +187,7 @@ function shouldMinimizeToNotificationArea(): boolean {
 }
 
 function shouldCloseToNotificationArea(): boolean {
-    return settings.get('closeToNotificationArea');
+    return settings.get('closeToNotificationArea') && shouldShowIconInNotificationArea();
 }
 
 function getTrayIcon(): string {
@@ -768,14 +768,25 @@ try {
             if (shouldShowIconInNotificationArea()) {
                 tray = new Tray(getTrayIcon());
                 tray.setToolTip('Japamine');
+
+                const showAndFocusWindow = () => {
+                    if (mainWindow) {
+                        if (mainWindow.isMinimized()) {
+                            mainWindow.restore();
+                        }
+                        mainWindow.show();
+                        mainWindow.focus();
+                    }
+                };
+
+                tray.on('click', showAndFocusWindow);
+                tray.on('double-click', showAndFocusWindow);
+
                 const defaultContextMenu = Menu.buildFromTemplate([
                     {
                         label: 'Japamine',
                         click(): void {
-                            if (mainWindow) {
-                                mainWindow.show();
-                                mainWindow.focus();
-                            }
+                            showAndFocusWindow();
                         },
                     },
                     {
@@ -810,14 +821,21 @@ try {
                 return;
             }
 
+            const showAndFocusWindow = () => {
+                if (mainWindow) {
+                    if (mainWindow.isMinimized()) {
+                        mainWindow.restore();
+                    }
+                    mainWindow.show();
+                    mainWindow.focus();
+                }
+            };
+
             const contextMenu = Menu.buildFromTemplate([
                 {
                     label: arg.showDopamineLabel,
                     click(): void {
-                        if (mainWindow) {
-                            mainWindow.show();
-                            mainWindow.focus();
-                        }
+                        showAndFocusWindow();
                     },
                 },
                 {
