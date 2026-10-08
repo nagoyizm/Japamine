@@ -275,59 +275,71 @@ export class CollectionFoldersComponent extends BaseVirtualScrollBrowser impleme
         this.restoreScrollPosition(this.viewPort, CollectionFoldersComponent.subfolderScrollPositionKey, this.subfolders.length > 0);
     }
 
-    public ngOnInit(): void {
-        void this.initializeAsync();
+    public async ngOnInit(): Promise<void> {
+        await this.initializeAsync();
     }
 
     private async initializeAsync(): Promise<void> {
-        this.subscription.add(
-            this.playbackService.playbackStarted$.subscribe((playbackStarted: PlaybackStarted) => {
-                this.playbackIndicationService.setPlayingSubfolder(this.subfolders, playbackStarted.currentTrack);
-                this.updateTreePlayingIndication(playbackStarted.currentTrack?.path);
-                PromiseUtils.noAwait(this.loadNowPlayingFolderAsync(playbackStarted.currentTrack));
-                PromiseUtils.noAwait(this.loadLyricsAsync(playbackStarted.currentTrack));
-                this.startLyricsTracking();
-            }),
-        );
+        if (this.playbackService.playbackStarted$) {
+            this.subscription.add(
+                this.playbackService.playbackStarted$.subscribe((playbackStarted: PlaybackStarted) => {
+                    this.playbackIndicationService.setPlayingSubfolder(this.subfolders, playbackStarted.currentTrack);
+                    this.updateTreePlayingIndication(playbackStarted.currentTrack?.path);
+                    PromiseUtils.noAwait(this.loadNowPlayingFolderAsync(playbackStarted.currentTrack));
+                    PromiseUtils.noAwait(this.loadLyricsAsync(playbackStarted.currentTrack));
+                    this.startLyricsTracking();
+                }),
+            );
+        }
 
-        this.subscription.add(
-            this.playbackService.playbackStopped$.subscribe(() => {
-                this.playbackIndicationService.clearPlayingSubfolder(this.subfolders);
-                this.clearTreePlayingIndication();
-                this.clearNowPlayingTracksState();
-                this.clearLyricsState();
-                this.stopLyricsTracking();
-                PromiseUtils.noAwait(this.loadTopPlayedFoldersAsync());
-            }),
-        );
+        if (this.playbackService.playbackStopped$) {
+            this.subscription.add(
+                this.playbackService.playbackStopped$.subscribe(() => {
+                    this.playbackIndicationService.clearPlayingSubfolder(this.subfolders);
+                    this.clearTreePlayingIndication();
+                    this.clearNowPlayingTracksState();
+                    this.clearLyricsState();
+                    this.stopLyricsTracking();
+                    PromiseUtils.noAwait(this.loadTopPlayedFoldersAsync());
+                }),
+            );
+        }
 
-        this.subscription.add(
-            this.playbackService.playbackPaused$.subscribe(() => {
-                this.stopLyricsTracking();
-            }),
-        );
+        if (this.playbackService.playbackPaused$) {
+            this.subscription.add(
+                this.playbackService.playbackPaused$.subscribe(() => {
+                    this.stopLyricsTracking();
+                }),
+            );
+        }
 
-        this.subscription.add(
-            this.playbackService.playbackResumed$.subscribe(() => {
-                this.startLyricsTracking();
-            }),
-        );
+        if (this.playbackService.playbackResumed$) {
+            this.subscription.add(
+                this.playbackService.playbackResumed$.subscribe(() => {
+                    this.startLyricsTracking();
+                }),
+            );
+        }
 
-        this.subscription.add(
-            this.playbackService.progressChanged$.subscribe((progress: PlaybackProgress) => {
-                this.updateActiveLyricsIndex(progress.progressSeconds);
-            }),
-        );
+        if (this.playbackService.progressChanged$) {
+            this.subscription.add(
+                this.playbackService.progressChanged$.subscribe((progress: PlaybackProgress) => {
+                    this.updateActiveLyricsIndex(progress.progressSeconds);
+                }),
+            );
+        }
 
-        this.subscription.add(
-            this.playbackService.playbackSkipped$.subscribe(() => {
-                this.activeLyricIndex = -1;
-                const prog = this.playbackService.getCurrentProgress();
-                if (prog != null) {
-                    this.updateActiveLyricsIndex(prog.progressSeconds);
-                }
-            }),
-        );
+        if (this.playbackService.playbackSkipped$) {
+            this.subscription.add(
+                this.playbackService.playbackSkipped$.subscribe(() => {
+                    this.activeLyricIndex = -1;
+                    const prog = this.playbackService.getCurrentProgress?.();
+                    if (prog != null) {
+                        this.updateActiveLyricsIndex(prog.progressSeconds);
+                    }
+                }),
+            );
+        }
 
         this.subscription.add(
             this.indexingService.indexingFinished$.subscribe(() => {

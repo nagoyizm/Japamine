@@ -442,7 +442,10 @@ describe('validate i18n', () => {
         "show-stop-button",
         "stop",
         "progress-bar",
-        "use-thick-progress-and-volume-bars"
+        "use-thick-progress-and-volume-bars",
+        "add-lyrics-manually",
+        "enter-lyrics",
+        "restart-to-update"
     ].sort();
 
     Constants.languages.forEach((language) => {

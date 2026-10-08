@@ -22,6 +22,7 @@ import { ContextMenuOpener } from '../../context-menu-opener';
 import { MouseSelectionWatcher } from '../../mouse-selection-watcher';
 import { DateTime } from '../../../../common/date-time';
 import { PlaybackStarted } from '../../../../services/playback/playback-started';
+import { PlaybackProgress } from '../../../../services/playback/playback-progress';
 import { FolderModel } from '../../../../services/folder/folder-model';
 import { SubfolderModel } from '../../../../services/folder/subfolder-model';
 import { Track } from '../../../../data/entities/track';
@@ -171,6 +172,11 @@ describe('CollectionFoldersComponent', () => {
         playbackServicePlaybackStoppedMock = new Subject();
         const playbackServicePlaybackStoppedMock$: Observable<void> = playbackServicePlaybackStoppedMock.asObservable();
         playbackServiceMock.setup((x) => x.playbackStopped$).returns(() => playbackServicePlaybackStoppedMock$);
+
+        playbackServiceMock.setup((x) => x.playbackPaused$).returns(() => new Subject<void>().asObservable());
+        playbackServiceMock.setup((x) => x.playbackResumed$).returns(() => new Subject<void>().asObservable());
+        playbackServiceMock.setup((x) => x.progressChanged$).returns(() => new Subject<PlaybackProgress>().asObservable());
+        playbackServiceMock.setup((x) => x.playbackSkipped$).returns(() => new Subject<void>().asObservable());
 
         indexingServiceIndexingFinishedMock = new Subject();
         const indexingServiceIndexingFinishedMock$: Observable<void> = indexingServiceIndexingFinishedMock.asObservable();
