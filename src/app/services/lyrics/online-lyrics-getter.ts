@@ -647,11 +647,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             try {
                 const ovhLyrics: Lyrics = await this.lyricsOvhApi.getLyricsAsync(artist, candTitle);
                 if (!StringUtils.isNullOrWhiteSpace(ovhLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(ovhLyrics.text, artist, candTitle)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(ovhLyrics.text, track);
                     return LyricsModel.plain(
                         track,
                         ovhLyrics.sourceName,
                         LyricsSourceType.online,
-                        ovhLyrics.text,
+                        cleaned,
                         this.resolveMatchedValue(ovhLyrics.matchedTitle, candTitle),
                         this.resolveMatchedValue(ovhLyrics.matchedArtist, artist),
                     );
@@ -677,11 +678,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             try {
                 const jLyrics: Lyrics = await this.jLyricApi.getLyricsAsync(artist, candTitle);
                 if (!StringUtils.isNullOrWhiteSpace(jLyrics.text)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(jLyrics.text, track);
                     return LyricsModel.plain(
                         track,
                         jLyrics.sourceName,
                         LyricsSourceType.online,
-                        jLyrics.text,
+                        cleaned,
                         this.resolveMatchedValue(jLyrics.matchedTitle, candTitle),
                         this.resolveMatchedValue(jLyrics.matchedArtist, artist),
                     );
@@ -707,11 +709,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             try {
                 const utLyrics: Lyrics = await this.utaTenApi.getLyricsAsync(artist, candTitle);
                 if (!StringUtils.isNullOrWhiteSpace(utLyrics.text)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(utLyrics.text, track);
                     return LyricsModel.plain(
                         track,
                         utLyrics.sourceName,
                         LyricsSourceType.online,
-                        utLyrics.text,
+                        cleaned,
                         this.resolveMatchedValue(utLyrics.matchedTitle, candTitle),
                         this.resolveMatchedValue(utLyrics.matchedArtist, artist),
                     );
@@ -739,11 +742,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             try {
                 const geniusLyrics: Lyrics = await this.geniusApi.searchAndExtractLyricsAsync(candidate, artist, titleCandidates);
                 if (!StringUtils.isNullOrWhiteSpace(geniusLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(geniusLyrics.text, artist, rawTitle)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(geniusLyrics.text, track);
                     return LyricsModel.plain(
                         track,
                         geniusLyrics.sourceName,
                         LyricsSourceType.online,
-                        geniusLyrics.text,
+                        cleaned,
                         this.resolveMatchedValue(geniusLyrics.matchedTitle, rawTitle),
                         this.resolveMatchedValue(geniusLyrics.matchedArtist, artist),
                     );
@@ -771,11 +775,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                 try {
                     const azLyrics = await this.azLyricsApi.getLyricsAsync(artist, candTitle);
                     if (!StringUtils.isNullOrWhiteSpace(azLyrics.text)) {
+                        const cleaned = LyricsFilterUtils.cleanLyricsText(azLyrics.text, track);
                         return LyricsModel.plain(
                             track,
                             azLyrics.sourceName,
                             LyricsSourceType.online,
-                            azLyrics.text,
+                            cleaned,
                             this.resolveMatchedValue(azLyrics.matchedTitle, candTitle),
                             this.resolveMatchedValue(azLyrics.matchedArtist, artist),
                         );
@@ -801,11 +806,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
         try {
             const chartLyrics = await this.chartLyricsApi.getLyricsAsync(artist, rawTitle);
             if (!StringUtils.isNullOrWhiteSpace(chartLyrics.text)) {
+                const cleaned = LyricsFilterUtils.cleanLyricsText(chartLyrics.text, track);
                 return LyricsModel.plain(
                     track,
                     chartLyrics.sourceName,
                     LyricsSourceType.online,
-                    chartLyrics.text,
+                    cleaned,
                     this.resolveMatchedValue(chartLyrics.matchedTitle, rawTitle),
                     this.resolveMatchedValue(chartLyrics.matchedArtist, artist),
                 );
@@ -843,11 +849,12 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             if (artist.length > 0 && title.length > 0) {
                 const ovhLyrics = await this.lyricsOvhApi.getLyricsAsync(artist, title);
                 if (!StringUtils.isNullOrWhiteSpace(ovhLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(ovhLyrics.text, artist, title)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(ovhLyrics.text, track);
                     return LyricsModel.plain(
                         track,
                         ovhLyrics.sourceName,
                         LyricsSourceType.online,
-                        ovhLyrics.text,
+                        cleaned,
                         this.resolveMatchedValue(ovhLyrics.matchedTitle, title),
                         this.resolveMatchedValue(ovhLyrics.matchedArtist, artist),
                     );
@@ -1034,7 +1041,8 @@ export class OnlineLyricsGetter implements ILyricsGetter {
         }
 
         if (!StringUtils.isNullOrWhiteSpace(result.plainLyrics)) {
-            return LyricsModel.plain(track, this.lrclibApi.sourceName, LyricsSourceType.online, result.plainLyrics!, matchedTitle, matchedArtist);
+            const cleaned = LyricsFilterUtils.cleanLyricsText(result.plainLyrics!, track);
+            return LyricsModel.plain(track, this.lrclibApi.sourceName, LyricsSourceType.online, cleaned, matchedTitle, matchedArtist);
         }
 
         return undefined;
@@ -1058,7 +1066,10 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                 continue;
             }
 
-            const textContent: string = line.replace(OnlineLyricsGetter.timestampRegex, '').trim();
+            let textContent: string = line.replace(OnlineLyricsGetter.timestampRegex, '').trim();
+            if (!StringUtils.isNullOrWhiteSpace(textContent)) {
+                textContent = LyricsFilterUtils.cleanLyricsText(textContent, track);
+            }
 
             for (const ts of timestamps) {
                 lyricLines.push(textContent);

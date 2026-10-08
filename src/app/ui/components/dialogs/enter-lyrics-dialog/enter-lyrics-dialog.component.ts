@@ -5,6 +5,7 @@ import { KaraokeroAlignmentService } from '../../../../services/lyrics/karaokero
 import { LyricsModel } from '../../../../services/lyrics/lyrics-model';
 import { LyricsRomanizationService } from '../../../../services/lyrics/lyrics-romanization.service';
 import { StringUtils } from '../../../../common/utils/string-utils';
+import { LyricsFilterUtils } from '../../../../common/utils/lyrics-filter.utils';
 
 export interface EnterLyricsDialogData {
     track: TrackModel;
@@ -54,7 +55,14 @@ export class EnterLyricsDialogComponent implements OnInit {
         return this.data?.track?.artists || '';
     }
 
+    public cleanLyrics(): void {
+        if (this.lyricsText) {
+            this.lyricsText = LyricsFilterUtils.cleanLyricsText(this.lyricsText, this.data?.track);
+        }
+    }
+
     public async syncWithAiAsync(): Promise<void> {
+        this.cleanLyrics();
         if (!this.hasLyricsText || !this.karaokeroAlignmentService) {
             return;
         }
@@ -88,6 +96,7 @@ export class EnterLyricsDialogComponent implements OnInit {
     }
 
     public async savePlainLyricsAsync(): Promise<void> {
+        this.cleanLyrics();
         if (!this.hasLyricsText || !this.karaokeroAlignmentService) {
             return;
         }

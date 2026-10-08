@@ -57,6 +57,14 @@ describe('EnterLyricsDialogComponent', () => {
         });
     });
 
+    describe('cleanLyrics', () => {
+        it('should strip section headers from lyricsText', () => {
+            component.lyricsText = '[Verse 1]\nLine 1\n[Chorus]\nLine 2';
+            component.cleanLyrics();
+            expect(component.lyricsText).toEqual('Line 1\n\nLine 2');
+        });
+    });
+
     describe('canUseAi', () => {
         it('should return service availability', () => {
             karaokeroServiceMock.setup(x => x.isAvailable()).returns(() => true);

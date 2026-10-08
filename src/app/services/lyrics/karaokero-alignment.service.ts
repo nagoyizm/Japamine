@@ -7,6 +7,7 @@ import { StringUtils } from '../../common/utils/string-utils';
 import { TrackModel } from '../track/track-model';
 import { LyricsModel } from './lyrics-model';
 import { LyricsSourceType } from '../../common/api/lyrics/lyrics-source-type';
+import { LyricsFilterUtils } from '../../common/utils/lyrics-filter.utils';
 
 export interface AlignedLineResult {
     line: string;
@@ -56,7 +57,8 @@ export class KaraokeroAlignmentService {
             return undefined;
         }
 
-        const lines = lyricsText
+        const cleanedLyrics = LyricsFilterUtils.cleanLyricsText(lyricsText, track);
+        const lines = cleanedLyrics
             .split(/\r?\n/)
             .map((l) => l.trim())
             .filter((l) => l.length > 0);
@@ -96,7 +98,8 @@ export class KaraokeroAlignmentService {
             return undefined;
         }
 
-        const lines = lyricsText
+        const cleanedLyrics = LyricsFilterUtils.cleanLyricsText(lyricsText, track);
+        const lines = cleanedLyrics
             .split(/\r?\n/)
             .map((l) => l.trim())
             .filter((l) => l.length > 0);

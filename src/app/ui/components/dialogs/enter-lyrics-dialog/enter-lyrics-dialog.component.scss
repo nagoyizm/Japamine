@@ -5,6 +5,18 @@
     .track-header-info {
         padding-bottom: 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        .btn-clean-lyrics {
+            opacity: 0.85;
+            transition: opacity 0.2s, background-color 0.2s;
+            line-height: 24px;
+            height: 26px;
+
+            &:hover:not([disabled]) {
+                opacity: 1;
+                background: rgba(255, 255, 255, 0.08);
+            }
+        }
     }
 
     .textarea-container {

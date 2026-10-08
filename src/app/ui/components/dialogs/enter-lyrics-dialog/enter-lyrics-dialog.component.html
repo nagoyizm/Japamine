@@ -1,9 +1,21 @@
 <app-dialog-header icon="las la-microphone-alt" title="Ingresar Letra / Sincronizar con IA"></app-dialog-header>
 
 <mat-dialog-content class="enter-lyrics-dialog-content">
-    <div class="track-header-info mb-2">
-        <div class="font-14px font-weight-bold ellipsis">{{ trackTitle }}</div>
-        <div class="secondary-text font-12px ellipsis" *ngIf="trackArtist">{{ trackArtist }}</div>
+    <div class="track-header-info d-flex justify-content-between align-items-center mb-2">
+        <div class="overflow-hidden mr-2">
+            <div class="font-14px font-weight-bold ellipsis">{{ trackTitle }}</div>
+            <div class="secondary-text font-12px ellipsis" *ngIf="trackArtist">{{ trackArtist }}</div>
+        </div>
+        <button
+            type="button"
+            mat-button
+            class="btn-clean-lyrics font-11px px-2 py-0 border rounded flex-shrink-0"
+            (click)="cleanLyrics()"
+            [disabled]="!hasLyricsText || isAligning"
+            matTooltip="Eliminar encabezados como [Verse 1], [Chorus] y datos de artista/título"
+        >
+            <i class="las la-broom mr-1"></i> Limpiar etiquetas
+        </button>
     </div>
 
     <div class="textarea-container">
