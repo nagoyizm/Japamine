@@ -1,0 +1,58 @@
+<app-dialog-header icon="las la-microphone-alt" title="Ingresar Letra / Sincronizar con IA"></app-dialog-header>
+
+<mat-dialog-content class="enter-lyrics-dialog-content">
+    <div class="track-header-info mb-2">
+        <div class="font-14px font-weight-bold ellipsis">{{ trackTitle }}</div>
+        <div class="secondary-text font-12px ellipsis" *ngIf="trackArtist">{{ trackArtist }}</div>
+    </div>
+
+    <div class="textarea-container">
+        <textarea
+            class="lyrics-textarea"
+            [(ngModel)]="lyricsText"
+            [disabled]="isAligning"
+            placeholder="Pega aquí la letra que encontraste en Google (línea por línea)..."
+            rows="12"
+        ></textarea>
+    </div>
+
+    <!-- Indicador de progreso de IA -->
+    <div *ngIf="isAligning" class="status-box d-flex align-items-center mt-2 p-2 rounded">
+        <mat-spinner [diameter]="22" class="mr-2"></mat-spinner>
+        <span class="font-12px">{{ statusMessage }}</span>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div *ngIf="errorMessage" class="error-box mt-2 p-2 rounded font-12px text-danger">
+        <i class="las la-exclamation-triangle mr-1"></i> {{ errorMessage }}
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions class="d-flex justify-content-between align-items-center pt-2">
+    <div>
+        <app-transparent-button (click)="cancel()" [disabled]="isAligning">
+            {{ 'cancel' | translate }}
+        </app-transparent-button>
+    </div>
+
+    <div class="d-flex align-items-center">
+        <!-- Guardar plano -->
+        <app-transparent-button
+            class="mr-2"
+            [disabled]="!hasLyricsText || isAligning"
+            (click)="savePlainLyricsAsync()"
+            matTooltip="Guardar la letra sin análisis de IA"
+        >
+            <i class="las la-save mr-1"></i> Guardar normal
+        </app-transparent-button>
+
+        <!-- Sincronizar IA con Karaokero -->
+        <app-accent-button
+            [disabled]="!hasLyricsText || isAligning"
+            (click)="syncWithAiAsync()"
+            matTooltip="Escuchar la música y sincronizar los tiempos línea por línea con IA (Karaokero)"
+        >
+            <i class="las la-magic mr-1"></i> Sincronizar con IA
+        </app-accent-button>
+    </div>
+</mat-dialog-actions>

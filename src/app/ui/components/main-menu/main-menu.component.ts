@@ -43,6 +43,10 @@ export class MainMenuComponent {
         await this.updateService.downloadLatestReleaseAsync();
     }
 
+    public async restartAndInstallAsync(): Promise<void> {
+        await this.updateService.restartAndInstallAsync();
+    }
+
     public async browseToDonateLinkAsync(): Promise<void> {
         await this.desktop.openLinkAsync(ContactInformation.donateUrl);
     }

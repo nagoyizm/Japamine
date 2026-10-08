@@ -40,6 +40,14 @@
             </span>
             <div class="d-flex align-items-center">
                 <button
+                    class="mini-btn-align font-10px px-2 py-0 rounded mr-1"
+                    (click)="openEnterLyricsDialogAsync()"
+                    matTooltip="Ingresar o editar letra manualmente y sincronizar con IA"
+                >
+                    <i class="las la-pen mr-1"></i>
+                    <span>Letra</span>
+                </button>
+                <button
                     *ngIf="canAlignWithKaraokero && !hasRichLyrics && hasLyrics"
                     class="mini-btn-align font-10px px-2 py-0 rounded mr-1"
                     [disabled]="isAligningLyrics"
@@ -125,7 +133,10 @@
             class="flex-grow d-flex flex-column align-items-center justify-content-center text-center secondary-text p-3"
         >
             <i class="lar la-file-alt font-24px mb-1 opacity-50"></i>
-            <span class="font-11px">Sin letra disponible</span>
+            <span class="font-11px mb-2">Sin letra disponible</span>
+            <button class="mini-btn-align font-10px px-2 py-1 rounded" (click)="openEnterLyricsDialogAsync()">
+                <i class="las la-plus mr-1"></i> Ingresar letra
+            </button>
         </div>
 
         <!-- Sin pista en reproducción -->

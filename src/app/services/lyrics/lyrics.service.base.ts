@@ -10,5 +10,6 @@ export abstract class LyricsServiceBase implements ILyricsGetter {
     public abstract getPreviousAlternativeLyricsAsync(track?: TrackModel): Promise<LyricsModel | undefined>;
     public abstract getCandidateIndexInfo(): { current: number; total: number } | undefined;
     public abstract hasNextAlternative(): boolean;
+    public abstract setCustomLyrics(lyrics: LyricsModel): void;
 }
 

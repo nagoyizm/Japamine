@@ -180,6 +180,12 @@ export class LyricsService implements LyricsServiceBase {
         this.currentCandidateIndex = -1;
     }
 
+    public setCustomLyrics(lyrics: LyricsModel): void {
+        this.cachedOnlineLyrics = lyrics;
+        this.currentCandidates = [lyrics];
+        this.currentCandidateIndex = 0;
+    }
+
     private async getRichLyricsAsync(track: TrackModel): Promise<LyricsModel | undefined> {
         if (!this.settings.showRichLyrics) {
             return undefined;

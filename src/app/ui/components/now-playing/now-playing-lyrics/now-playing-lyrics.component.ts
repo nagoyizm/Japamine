@@ -1,4 +1,6 @@
-import { Component, HostListener, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, Optional, ViewEncapsulation } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { EnterLyricsDialogComponent } from '../../dialogs/enter-lyrics-dialog/enter-lyrics-dialog.component';
 import { WindowSize } from '../../../../common/io/window-size';
 import { ApplicationBase } from '../../../../common/io/application.base';
 import { Subscription } from 'rxjs';
@@ -32,6 +34,7 @@ export class NowPlayingLyricsComponent implements OnInit, OnDestroy {
         private lyricsService: LyricsServiceBase,
         private application: ApplicationBase,
         public settings: SettingsBase,
+        @Optional() private dialog?: MatDialog,
     ) {}
 
     public lyricsSourceTypeEnum: typeof LyricsSourceType = LyricsSourceType;
@@ -130,5 +133,31 @@ export class NowPlayingLyricsComponent implements OnInit, OnDestroy {
         this._isBusy = false;
 
         this.previousTrackPath = track.path;
+    }
+
+    public async openEnterLyricsDialogAsync(): Promise<void> {
+        if (!this.dialog) {
+            return;
+        }
+
+        const currentPlaybackInfo = await this.playbackInformationService.getCurrentPlaybackInformationAsync();
+        if (!currentPlaybackInfo?.track) {
+            return;
+        }
+
+        const dialogRef = this.dialog.open(EnterLyricsDialogComponent, {
+            width: '600px',
+            data: {
+                track: currentPlaybackInfo.track,
+                initialLyrics: this._lyrics?.plainText || '',
+            },
+        });
+
+        const result: LyricsModel | undefined = await dialogRef.afterClosed().toPromise();
+        if (result) {
+            this._lyrics = result;
+            this.previousTrackPath = currentPlaybackInfo.track.path;
+            this.lyricsService.setCustomLyrics(result);
+        }
     }
 }

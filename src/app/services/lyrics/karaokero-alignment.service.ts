@@ -91,6 +91,52 @@ export class KaraokeroAlignmentService {
         }
     }
 
+    public async savePlainLyricsAsync(track: TrackModel, lyricsText: string): Promise<LyricsModel | undefined> {
+        if (!track || !track.path || StringUtils.isNullOrWhiteSpace(lyricsText)) {
+            return undefined;
+        }
+
+        const lines = lyricsText
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0);
+
+        if (lines.length === 0) {
+            return undefined;
+        }
+
+        const lrcOutputPath = track.path.replace(/\.[a-zA-Z0-9]+$/, '.lrc');
+        const durationSec = (track.durationInMilliseconds > 0) ? (track.durationInMilliseconds / 1000) : (lines.length * 4);
+        const step = durationSec / Math.max(lines.length, 1);
+
+        const lrcLines: string[] = [];
+        const timeStamps: number[] = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const st = i * step;
+            timeStamps.push(st);
+            const m = Math.floor(st / 60);
+            const s = st % 60;
+            lrcLines.push(`[${String(m).padStart(2, '0')}:${s.toFixed(2).padStart(5, '0')}]${lines[i]}`);
+        }
+
+        try {
+            await fs.promises.writeFile(lrcOutputPath, lrcLines.join('\n'), 'utf-8');
+            const fullText = lines.join('\n');
+            return LyricsModel.timed(
+                track,
+                'Manual',
+                LyricsSourceType.lrc,
+                fullText,
+                lines,
+                timeStamps,
+            );
+        } catch (e: unknown) {
+            this.logger.error(e, 'Failed to save plain lyrics', 'KaraokeroAlignmentService', 'savePlainLyricsAsync');
+            return undefined;
+        }
+    }
+
     private runKaraokeroAlignPythonAsync(
         pythonPath: string,
         audioPath: string,

@@ -21,6 +21,11 @@
             <div class="secondary-text d-flex align-items-center" *ngIf="this.lyrics?.sourceType === lyricsSourceTypeEnum.online">
                 {{ this.lyrics?.sourceName }}<i class="secondary-text las la-globe ml-1"></i>
             </div>
+            <div class="mt-2">
+                <button mat-button class="btn-enter-lyrics font-11px px-2 py-0 border rounded" (click)="openEnterLyricsDialogAsync()" matTooltip="Ingresar o sincronizar letra manualmente">
+                    <i class="las la-pen mr-1"></i> {{ 'enter-lyrics' | translate }}
+                </button>
+            </div>
         </div>
         <app-playback-information
             class="app-now-playing-lyrics__playback-info"
@@ -40,6 +45,11 @@
             [lyrics]="this.lyrics"
             [fontSize]="this.settings.richLyricsFontSize"
         ></app-plain-lyrics>
-        <div *ngIf="!this.hasLyrics">{{ 'no-lyrics-found' | translate }}</div>
+        <div *ngIf="!this.hasLyrics" class="d-flex flex-column align-items-center justify-content-center h-100">
+            <div class="mb-3 secondary-text font-15px">{{ 'no-lyrics-found' | translate }}</div>
+            <button mat-button class="accent-background font-13px px-3 py-1 text-white rounded" (click)="openEnterLyricsDialogAsync()">
+                <i class="las la-plus mr-1"></i> {{ 'add-lyrics-manually' | translate }}
+            </button>
+        </div>
     </div>
 </div>

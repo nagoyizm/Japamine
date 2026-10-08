@@ -20,7 +20,16 @@
     <button mat-menu-item (click)="browseToDonateLinkAsync()">
         <i class="accent-color las la-heart mr-1 font-16px"></i> {{ 'donate' | translate }}
     </button>
-    <div *ngIf="this.updateService.isUpdateAvailable">
+    <div *ngIf="this.updateService.isUpdateDownloaded">
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="restartAndInstallAsync()">
+            <div class="accent-color">
+                <i class="accent-color las la-redo-alt mr-1"></i> {{ 'restart-to-update' | translate }} {{ this.applicationName }}
+                {{ this.updateService.latestRelease }}
+            </div>
+        </button>
+    </div>
+    <div *ngIf="this.updateService.isUpdateAvailable && !this.updateService.isUpdateDownloaded">
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="downloadLatestReleaseAsync()">
             <div class="accent-color">

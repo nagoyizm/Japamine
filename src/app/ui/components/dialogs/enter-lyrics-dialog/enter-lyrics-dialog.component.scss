@@ -1,0 +1,44 @@
+.enter-lyrics-dialog-content {
+    min-width: 480px;
+    max-width: 620px;
+
+    .track-header-info {
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .textarea-container {
+        width: 100%;
+
+        .lyrics-textarea {
+            width: 100%;
+            min-height: 240px;
+            max-height: 380px;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.25);
+            color: inherit;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: vertical;
+            font-family: inherit;
+
+            &:focus {
+                outline: none;
+                border-color: var(--accent-color, #00e5ff);
+            }
+        }
+    }
+
+    .status-box {
+        background: rgba(0, 229, 255, 0.08);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+    }
+
+    .error-box {
+        background: rgba(255, 75, 75, 0.1);
+        border: 1px solid rgba(255, 75, 75, 0.3);
+    }
+}

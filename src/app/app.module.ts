@@ -108,6 +108,7 @@ import { EditPlaylistDialogComponent } from './ui/components/dialogs/edit-playli
 import { ErrorDialogComponent } from './ui/components/dialogs/error-dialog/error-dialog.component';
 import { InputDialogComponent } from './ui/components/dialogs/input-dialog/input-dialog.component';
 import { LicenseDialogComponent } from './ui/components/dialogs/license-dialog/license-dialog.component';
+import { EnterLyricsDialogComponent } from './ui/components/dialogs/enter-lyrics-dialog/enter-lyrics-dialog.component';
 import { AboutComponent } from './ui/components/information/about/about.component';
 import { ComponentsComponent } from './ui/components/information/components/components.component';
 import { InformationComponent } from './ui/components/information/information.component';
@@ -381,6 +382,7 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         DialogHeaderComponent,
         ConfirmationDialogComponent,
         InputDialogComponent,
+        EnterLyricsDialogComponent,
         ErrorDialogComponent,
         InfoDialogComponent,
         LicenseDialogComponent,

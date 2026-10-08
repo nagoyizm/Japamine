@@ -24,6 +24,8 @@ import { SwitchPlayerService } from '../../../../services/player-switcher/switch
 import { ApplicationBase } from '../../../../common/io/application.base';
 import { DesktopBase } from '../../../../common/io/desktop.base';
 import { SettingsBase } from '../../../../common/settings/settings.base';
+import { MatDialog } from '@angular/material/dialog';
+import { EnterLyricsDialogComponent } from '../../dialogs/enter-lyrics-dialog/enter-lyrics-dialog.component';
 
 @Component({
     selector: 'app-mini-player',
@@ -49,6 +51,7 @@ export class MiniPlayerComponent implements OnInit, OnDestroy {
     public lyricsTextMode: 'romaji' | 'both' | 'original' = 'romaji';
     public isRomanizingLyrics: boolean = false;
     public isLyricsEstimated: boolean = false;
+    public isAligningLyrics: boolean = false;
     public rejectedLyricsTracks: Set<string> = new Set<string>();
 
     public get displayedFoundTitle(): string {
@@ -134,12 +137,71 @@ export class MiniPlayerComponent implements OnInit, OnDestroy {
         @Optional() private readonly lyricsService?: LyricsServiceBase,
         @Optional() private readonly romanizationService?: LyricsRomanizationService,
         @Optional() public readonly karaokeroAlignmentService?: KaraokeroAlignmentService,
+        @Optional() private readonly dialog?: MatDialog,
     ) {}
 
     // ─── Getters ──────────────────────────────────────────────────────────────
 
     public get hasLyrics(): boolean {
         return this.nowPlayingLyrics != null && !StringUtils.isNullOrWhiteSpace(this.nowPlayingLyrics.plainText);
+    }
+
+    public get canAlignWithKaraokero(): boolean {
+        return this.karaokeroAlignmentService?.isAvailable() ?? false;
+    }
+
+    public async alignCurrentLyricsWithKaraokeroAsync(): Promise<void> {
+        const currentTrack = this.playbackService.currentTrack;
+        if (!currentTrack || !this.nowPlayingLyrics || !this.karaokeroAlignmentService) { return; }
+
+        this.isAligningLyrics = true;
+        this.cd.detectChanges();
+
+        try {
+            const aligned = await this.karaokeroAlignmentService.alignLyricsAsync(
+                currentTrack,
+                this.nowPlayingLyrics.plainText,
+            );
+            if (aligned) {
+                if (this.romanizationService) {
+                    await this.romanizationService.romanizeLyricsAsync(aligned);
+                }
+                this.nowPlayingLyrics = aligned;
+                if (this.lyricsService) {
+                    this.lyricsService.setCustomLyrics(aligned);
+                }
+                this.startLyricsTracking();
+            }
+        } catch (e: unknown) {
+            this.logger.error(e, 'Error al alinear con Karaokero', 'MiniPlayerComponent', 'alignCurrentLyricsWithKaraokeroAsync');
+        } finally {
+            this.isAligningLyrics = false;
+            this.cd.detectChanges();
+        }
+    }
+
+    public async openEnterLyricsDialogAsync(): Promise<void> {
+        if (!this.dialog) { return; }
+        const currentTrack = this.playbackService.currentTrack;
+        if (!currentTrack) { return; }
+
+        const dialogRef = this.dialog.open(EnterLyricsDialogComponent, {
+            width: '520px',
+            data: {
+                track: currentTrack,
+                initialLyrics: this.nowPlayingLyrics?.plainText || '',
+            },
+        });
+
+        const result: LyricsModel | undefined = await dialogRef.afterClosed().toPromise();
+        if (result) {
+            this.nowPlayingLyrics = result;
+            if (this.lyricsService) {
+                this.lyricsService.setCustomLyrics(result);
+            }
+            this.startLyricsTracking();
+            this.cd.detectChanges();
+        }
     }
 
     public get hasRichLyrics(): boolean {
@@ -441,44 +503,6 @@ export class MiniPlayerComponent implements OnInit, OnDestroy {
 
         if (lyrics.textLines == null || lyrics.textLines.length === 0) {
             lyrics.textLines = lyrics.plainText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
-        }
-    }
-
-    public isAligningLyrics: boolean = false;
-
-    public get canAlignWithKaraokero(): boolean {
-        return this.karaokeroAlignmentService?.isAvailable() ?? false;
-    }
-
-    public async alignCurrentLyricsWithKaraokeroAsync(): Promise<void> {
-        const track = this.playbackService.currentTrack;
-        if (track == null || this.nowPlayingLyrics == null || this.karaokeroAlignmentService == null) {
-            return;
-        }
-
-        try {
-            this.isAligningLyrics = true;
-            this.cd.detectChanges();
-
-            const aligned = await this.karaokeroAlignmentService.alignLyricsAsync(
-                track,
-                this.nowPlayingLyrics.plainText,
-            );
-
-            if (aligned?.startTimeStamps != null && aligned.startTimeStamps.length > 0) {
-                if (this.playbackService.currentTrack?.path === track.path) {
-                    this.nowPlayingLyrics = aligned;
-                    if (this.romanizationService != null) {
-                        await this.romanizationService.romanizeLyricsAsync(this.nowPlayingLyrics);
-                    }
-                    this.cd.detectChanges();
-                }
-            }
-        } catch (e: unknown) {
-            this.logger.error(e, 'Karaokero alignment failed in mini player', 'MiniPlayerComponent', 'alignCurrentLyricsWithKaraokeroAsync');
-        } finally {
-            this.isAligningLyrics = false;
-            this.cd.detectChanges();
         }
     }
 

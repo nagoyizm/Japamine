@@ -8,8 +8,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/ban-types */
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, nativeTheme, protocol, screen, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, protocol, screen, Tray } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -49,6 +49,66 @@ const settings = new SettingsStore();
  */
 log.create('main');
 log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'Japamine.log');
+
+/**
+ * Auto-Updater configuration
+ */
+autoUpdater.logger = log;
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+let isUpdateDownloaded = false;
+let downloadedUpdateVersion = '';
+
+autoUpdater.on('update-available', (info) => {
+    log.info(`[AutoUpdater] Actualización encontrada: ${info.version}`);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('updater-update-available', info.version);
+    }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    log.info(`[AutoUpdater] Actualización descargada con éxito: ${info.version}`);
+    isUpdateDownloaded = true;
+    downloadedUpdateVersion = info.version;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('updater-update-downloaded', info.version);
+
+        dialog
+            .showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Actualización de Japamine',
+                message: `¡Nueva versión ${info.version} lista para instalar!`,
+                detail: 'Se ha descargado la actualización en segundo plano. ¿Deseas reiniciar Japamine ahora para aplicar la nueva versión?',
+                buttons: ['Reiniciar y actualizar', 'Más tarde'],
+                defaultId: 0,
+                cancelId: 1,
+                noLink: true,
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.quitAndInstall();
+                }
+            })
+            .catch((err) => {
+                log.error('[AutoUpdater] Error mostrando diálogo:', err);
+            });
+    }
+});
+
+autoUpdater.on('error', (err) => {
+    log.error('[AutoUpdater] Error en autoUpdater:', err);
+});
+
+function checkForAppUpdates(): void {
+    if (app.isPackaged) {
+        log.info('[AutoUpdater] Buscando actualizaciones en GitHub...');
+        autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+            log.error('[AutoUpdater] Error al comprobar actualizaciones:', err);
+        });
+    }
+}
 
 // Prevent EPIPE crashes when stdout/stderr pipe is closed (e.g. launched from file manager on Linux)
 process.stdout?.on?.('error', () => {});
@@ -407,6 +467,10 @@ function createMainWindow(): void {
         mainWindow.setTitle('Japamine');
         mainWindow.show();
         mainWindow.focus();
+
+        setTimeout(() => {
+            checkForAppUpdates();
+        }, 5000);
     };
 
     // 'ready-to-show' doesn't fire on Windows in dev mode. In prod it seems to work.
@@ -1076,6 +1140,25 @@ try {
 
         ipcMain.handle('settings:getAll', () => settings.getAll());
         ipcMain.handle('settings:set', (_, key: string, value: any) => settings.set(key, value));
+
+        ipcMain.handle('updater-quit-and-install', () => {
+            log.info('[AutoUpdater] quit-and-install invocado desde la interfaz');
+            autoUpdater.quitAndInstall();
+        });
+
+        ipcMain.handle('updater-check-now', () => {
+            if (app.isPackaged) {
+                return autoUpdater.checkForUpdatesAndNotify();
+            }
+            return Promise.resolve(null);
+        });
+
+        ipcMain.handle('updater-get-status', () => {
+            return {
+                isDownloaded: isUpdateDownloaded,
+                version: downloadedUpdateVersion,
+            };
+        });
 
     }
 } catch (e) {
