@@ -1,30 +1,30 @@
 <div class="collection-viewport">
-    <as-split gutterSize="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)">
-        <as-split-area [size]="leftPaneSize" minSize="5" maxSize="95"
+    <as-split [gutterSize]="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)">
+        <as-split-area [size]="leftPaneSize" [minSize]="5" [maxSize]="95"
             ><div class="left-side-pane">
                 <app-playlist-folder-browser
                     class="p-3 fill"
-                    [(playlistFoldersPersister)]="this.playlistFoldersPersister"
+                    [playlistFoldersPersister]="this.playlistFoldersPersister"
                     [playlistFolders]="this.playlistFolders"
                     scrollPositionKey="playlists-folders"
                 ></app-playlist-folder-browser></div
         ></as-split-area>
-        <as-split-area [size]="centerPaneSize" minSize="5" maxSize="95">
+        <as-split-area [size]="centerPaneSize" [minSize]="5" [maxSize]="95">
             <app-playlist-browser
                 class="p-3 fill"
                 [playlists]="this.playlists | playlistsFilter: this.searchService.delayedSearchText"
-                [(playlistsPersister)]="this.playlistsPersister"
+                [playlistsPersister]="this.playlistsPersister"
                 scrollPositionKey="playlists-playlists"
             ></app-playlist-browser>
         </as-split-area>
-        <as-split-area [size]="rightPaneSize" minSize="5" maxSize="95">
+        <as-split-area [size]="rightPaneSize" [minSize]="5" [maxSize]="95">
             <div class="right-side-pane h-100 d-flex flex-column overflow-hidden">
                 <as-split [gutterSize]="4" unit="percent" direction="vertical">
                     <as-split-area [size]="50" [minSize]="20">
                         <app-playlist-track-browser
                             class="p-3 fill"
                             [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
-                            [(tracksPersister)]="this.tracksPersister"
+                            [tracksPersister]="this.tracksPersister"
                             [canReorder]="!this.searchService.delayedSearchText"
                             [canRemoveFromPlaylist]="this.canRemoveFromPlaylist"
                             scrollPositionKey="playlists-tracks"

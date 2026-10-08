@@ -1,30 +1,30 @@
 <div class="collection-viewport">
-    <as-split gutterSize="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)">
-        <as-split-area [size]="leftPaneSize" minSize="5" maxSize="95"
+    <as-split [gutterSize]="4" unit="percent" direction="horizontal" (dragEnd)="splitDragEnd($event)">
+        <as-split-area [size]="leftPaneSize" [minSize]="5" [maxSize]="95"
             ><div class="left-side-pane">
                 <app-genre-browser
                     class="p-3 fill"
                     [genres]="this.genres | genresFilter: this.searchService.delayedSearchText"
-                    [(genresPersister)]="this.genresPersister"
+                    [genresPersister]="this.genresPersister"
                     scrollPositionKey="genres-genres"
                 ></app-genre-browser></div
         ></as-split-area>
-        <as-split-area [size]="centerPaneSize" minSize="5" maxSize="95"
+        <as-split-area [size]="centerPaneSize" [minSize]="5" [maxSize]="95"
             ><app-album-browser
                 class="p-3 fill"
                 [albums]="this.albums | albumsFilter: this.searchService.delayedSearchText"
-                [(albumsPersister)]="this.albumsPersister"
+                [albumsPersister]="this.albumsPersister"
                 scrollPositionKey="genres-albums"
             ></app-album-browser
         ></as-split-area>
-        <as-split-area [size]="rightPaneSize" minSize="5" maxSize="95">
+        <as-split-area [size]="rightPaneSize" [minSize]="5" [maxSize]="95">
             <div class="right-side-pane h-100 d-flex flex-column overflow-hidden">
                 <as-split [gutterSize]="4" unit="percent" direction="vertical">
                     <as-split-area [size]="50" [minSize]="20">
                         <app-track-browser
                             class="p-3 fill"
                             [tracks]="this.tracks | tracksFilter: this.searchService.delayedSearchText"
-                            [(tracksPersister)]="this.tracksPersister"
+                            [tracksPersister]="this.tracksPersister"
                             [trackOrders]="this.trackOrders"
                             scrollPositionKey="genres-tracks"
                         ></app-track-browser>
