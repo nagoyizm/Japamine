@@ -24,6 +24,7 @@ import { Logger } from '../../../../common/logger';
 import { EnterLyricsDialogComponent } from '../../dialogs/enter-lyrics-dialog/enter-lyrics-dialog.component';
 import { PlaybackStarted } from '../../../../services/playback/playback-started';
 import { PlaybackProgress } from '../../../../services/playback/playback-progress';
+import { LrclibApi } from '../../../../common/api/lyrics/lrclib.api';
 
 @Component({
     selector: 'app-collection-lyrics-panel',
@@ -55,8 +56,11 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
     public lyricsSearchSuggestions: string[] = [];
     public lyricsRejectedNotice: boolean = false;
     public candidateSwitchNotice: string = '';
+    public isConfirmingLyrics: boolean = false;
+    public isLyricsConfirmed: boolean = false;
 
     private rejectedLyricsTracks: Set<string> = new Set<string>();
+    private confirmedTracks: Set<string> = new Set<string>();
 
     public constructor(
         public readonly playbackService: PlaybackService,
@@ -66,6 +70,7 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         private readonly cd: ChangeDetectorRef,
         @Optional() public readonly karaokeroAlignmentService?: KaraokeroAlignmentService,
         @Optional() private readonly romanizationService?: LyricsRomanizationService,
+        @Optional() private readonly lrclibApi?: LrclibApi,
     ) {}
 
     private lyricsTrackingIntervalId: number | undefined;
@@ -173,6 +178,8 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
         this.lyricsRejectedNotice = false;
         this.candidateSwitchNotice = '';
         this.lyricsSearchSuggestions = [];
+        this.isLyricsConfirmed = false;
+        this.isConfirmingLyrics = false;
         this.cd.markForCheck();
     }
 
@@ -285,6 +292,7 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
             return;
         }
         this.lyricsRejectedNotice = false;
+        this.isLyricsConfirmed = track.path ? this.confirmedTracks.has(track.path) : false;
 
         try {
             this.isLyricsLoading = true;
@@ -393,6 +401,92 @@ export class CollectionLyricsPanelComponent implements OnInit, OnDestroy {
                 this.cd.detectChanges();
             }
         });
+    }
+
+    public async confirmCurrentLyricsAsync(): Promise<void> {
+        const track = this.playbackService.currentTrack;
+        if (!track || !this.nowPlayingLyrics) {
+            return;
+        }
+
+        if (track.path) {
+            this.confirmedTracks.add(track.path);
+            this.rejectedLyricsTracks.delete(track.path);
+        }
+        this.isLyricsConfirmed = true;
+
+        const artist = track.rawFirstArtist || track.artists || '';
+        const title = track.rawTitle || track.title || '';
+
+        if (!this.lrclibApi || !artist || !title) {
+            this.candidateSwitchNotice = '✓ Letra confirmada como correcta';
+            setTimeout(() => {
+                this.candidateSwitchNotice = '';
+                this.cd.detectChanges();
+            }, 4000);
+            return;
+        }
+
+        this.isConfirmingLyrics = true;
+        this.candidateSwitchNotice = 'Enviando validación a LRCLIB...';
+        this.cd.detectChanges();
+
+        try {
+            let syncedLyrics: string | undefined = undefined;
+            if (
+                this.nowPlayingLyrics.startTimeStamps &&
+                this.nowPlayingLyrics.textLines &&
+                this.nowPlayingLyrics.startTimeStamps.length > 0 &&
+                this.nowPlayingLyrics.startTimeStamps.length === this.nowPlayingLyrics.textLines.length
+            ) {
+                syncedLyrics = this.nowPlayingLyrics.textLines
+                    .map((line, idx) => {
+                        const sec = this.nowPlayingLyrics!.startTimeStamps![idx] ?? 0;
+                        const m = Math.floor(sec / 60);
+                        const s = Math.floor(sec % 60);
+                        const cs = Math.floor((sec % 1) * 100);
+                        const ts = `[${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}.${cs < 10 ? '0' : ''}${cs}]`;
+                        return `${ts} ${line}`;
+                    })
+                    .join('\n');
+            }
+
+            const plain = this.nowPlayingLyrics.plainText || this.nowPlayingLyrics.textLines?.join('\n') || '';
+            const durationSec = track.durationInMilliseconds > 0 ? Math.round(track.durationInMilliseconds / 1000) : undefined;
+
+            const res = await this.lrclibApi.publishLyricsAsync(
+                {
+                    trackName: title,
+                    artistName: artist,
+                    albumName: track.albumTitle || undefined,
+                    duration: durationSec,
+                    plainLyrics: plain,
+                    syncedLyrics: syncedLyrics,
+                },
+                (status) => {
+                    this.candidateSwitchNotice = status;
+                    this.cd.detectChanges();
+                },
+            );
+
+            if (res.success) {
+                this.candidateSwitchNotice = '✓ ¡Letra confirmada y compartida en LRCLIB!';
+            } else {
+                const isAlready = res.error?.toLowerCase().includes('already') || res.error?.toLowerCase().includes('exist');
+                this.candidateSwitchNotice = isAlready
+                    ? '✓ Letra confirmada (ya validada en LRCLIB)'
+                    : '✓ Letra confirmada como correcta';
+            }
+        } catch (e: unknown) {
+            this.candidateSwitchNotice = '✓ Letra confirmada localmente';
+        } finally {
+            this.isConfirmingLyrics = false;
+            this.cd.detectChanges();
+            setTimeout(() => {
+                this.candidateSwitchNotice = '';
+                this.cd.detectChanges();
+            }, 4500);
+        }
     }
 
     public async rejectCurrentLyrics(): Promise<void> {

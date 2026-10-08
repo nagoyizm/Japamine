@@ -78,4 +78,38 @@ describe('CollectionLyricsPanelComponent', () => {
             expect(component).toBeDefined();
         });
     });
+
+    describe('confirmCurrentLyricsAsync', () => {
+        it('should do nothing if there is no current track or lyrics', async () => {
+            playbackServiceMock.setup((x) => x.currentTrack).returns(() => undefined);
+            component.nowPlayingLyrics = undefined;
+
+            await component.confirmCurrentLyricsAsync();
+
+            expect(component.isLyricsConfirmed).toBe(false);
+            expect(component.candidateSwitchNotice).toBe('');
+        });
+
+        it('should mark lyrics as confirmed locally when lrclibApi is not injected', async () => {
+            const track = {
+                path: 'C:/Music/test.mp3',
+                title: 'Test Song',
+                artists: 'Test Artist',
+                durationInMilliseconds: 180000,
+            } as any;
+            playbackServiceMock.setup((x) => x.currentTrack).returns(() => track);
+            component.nowPlayingLyrics = {
+                plainText: 'Line 1\nLine 2',
+                textLines: ['Line 1', 'Line 2'],
+                startTimeStamps: [0, 5],
+            } as any;
+
+            await component.confirmCurrentLyricsAsync();
+
+            expect(component.isLyricsConfirmed).toBe(true);
+            expect((component as any).confirmedTracks.has('C:/Music/test.mp3')).toBe(true);
+            expect(component.candidateSwitchNotice).toContain('confirmada');
+        });
+    });
 });
+
