@@ -194,7 +194,7 @@
     "add-to-playback-queue": "Adicionar à fila de reprodução",
     "single-track-added-to-playback-queue": "1 música adicionada à fila de reprodução",
     "multiple-tracks-added-to-playback-queue": "{{numberOfAddedTracks}} músicas adicionadas à fila de reprodução",
-    "show-dopamine": "Mostrar o Dopamine",
+    "show-dopamine": "Mostrar o Japamine",
     "exit": "Sair",
     "notification-area": "Área de notificação",
     "show-icon-in-notification-area": "Mostrar ícone na área de notificação (requer reinício)",

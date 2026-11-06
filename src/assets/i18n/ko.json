@@ -194,7 +194,7 @@
     "add-to-playback-queue": "재생 대기열에 추가하십시오",
     "single-track-added-to-playback-queue": "재생 대기열에 1 곡을 추가했습니다",
     "multiple-tracks-added-to-playback-queue": "{{numberOfAddedTracks}} 를 재생 대기열에 추가했습니다",
-    "show-dopamine": "Show Dopamine",
+    "show-dopamine": "Show Japamine",
     "exit": "Exit",
     "notification-area": "알림 영역",
     "show-icon-in-notification-area": "알림 영역에 아이콘을 표시합니다 (재시작 필요)",

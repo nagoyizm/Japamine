@@ -194,7 +194,7 @@
     "add-to-playback-queue": "Добавить в очередь проигрывания",
     "single-track-added-to-playback-queue": "Добавлена 1 песня в очередь проигрывания",
     "multiple-tracks-added-to-playback-queue": "Добавлено {{numberOfAddedTracks}} песен в очередь проигрывания",
-    "show-dopamine": "Показать Dopamine",
+    "show-dopamine": "Показать Japamine",
     "exit": "Выход",
     "notification-area": "Область уведомлений",
     "show-icon-in-notification-area": "Отображать значок в области уведомлений (требуется перезапуск)",

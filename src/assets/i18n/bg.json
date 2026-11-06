@@ -194,7 +194,7 @@
     "add-to-playback-queue": "Добавяне към опашката за възпроизвеждане",
     "single-track-added-to-playback-queue": "Добавена е 1 песен към опашката за възпроизвеждане",
     "multiple-tracks-added-to-playback-queue": "Добавени са {{numberOfAddedTracks}} песни към опашката за възпроизвеждане",
-    "show-dopamine": "Покажи Dopamine",
+    "show-dopamine": "Покажи Japamine",
     "exit": "Изход",
     "notification-area": "Област за уведомяване",
     "show-icon-in-notification-area": "Показване на икона в областта за уведомяване (изисква рестартиране)",

@@ -194,7 +194,7 @@
     "add-to-playback-queue": "Lägg till uppspelningskö",
     "single-track-added-to-playback-queue": "Lagt 1 låt till uppspelningskö",
     "multiple-tracks-added-to-playback-queue": "Lagt till {{numberOfAddedTracks}} låtar till uppspelningskö",
-    "show-dopamine": "Visa Dopamine",
+    "show-dopamine": "Visa Japamine",
     "exit": "Avsluta",
     "notification-area": "Meddelandefältet",
     "show-icon-in-notification-area": "Visa en ikon i meddelandefältet (kräver en omstart)",

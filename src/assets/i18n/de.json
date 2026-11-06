@@ -194,7 +194,7 @@
     "add-to-playback-queue": "Zur Wiedergabewarteschlange hinzufügen",
     "single-track-added-to-playback-queue": "Song zur Wiedergabewarteschlange hinzugefügt",
     "multiple-tracks-added-to-playback-queue": "{{numberOfAddedTracks}} Songs zur Wiedergabewarteschlange hinzugefügt",
-    "show-dopamine": "Zeige Dopamine",
+    "show-dopamine": "Zeige Japamine",
     "exit": "Beenden",
     "notification-area": "Benachrichtigungsbereich",
     "show-icon-in-notification-area": "Ein Icon im Benachrichtigungsbereich anzeigen (erfordert einen Neustart)",

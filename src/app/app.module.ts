@@ -246,6 +246,8 @@ import { LyricsOvhApi } from './common/api/lyrics/lyrics-ovh.api';
 import { GeniusApi } from './common/api/lyrics/genius.api';
 import { JLyricApi } from './common/api/lyrics/j-lyric.api';
 import { UtaTenApi } from './common/api/lyrics/uta-ten.api';
+import { LyricsTranslateApi } from './common/api/lyrics/lyrics-translate.api';
+import { SongLyricsApi } from './common/api/lyrics/song-lyrics.api';
 import { ArtistsFilterPipe } from './ui/pipes/artists-filter.pipe';
 import { TrackRepositoryBase } from './data/repositories/track-repository.base';
 import { FolderRepositoryBase } from './data/repositories/folder-repository.base';
@@ -569,6 +571,8 @@ export function settingsInitializerFactory(settings: SettingsBase) {
         GeniusApi,
         JLyricApi,
         UtaTenApi,
+        LyricsTranslateApi,
+        SongLyricsApi,
         MusicBrainzApi,
         MetadataPatcher,
         TracksColumnsOrdering,

@@ -14,6 +14,8 @@ import { LyricsOvhApi } from '../../common/api/lyrics/lyrics-ovh.api';
 import { GeniusApi } from '../../common/api/lyrics/genius.api';
 import { JLyricApi } from '../../common/api/lyrics/j-lyric.api';
 import { UtaTenApi } from '../../common/api/lyrics/uta-ten.api';
+import { LyricsTranslateApi } from '../../common/api/lyrics/lyrics-translate.api';
+import { SongLyricsApi } from '../../common/api/lyrics/song-lyrics.api';
 import { LyricsRomanizationService } from './lyrics-romanization.service';
 
 @Injectable()
@@ -30,6 +32,8 @@ export class OnlineLyricsGetter implements ILyricsGetter {
         @Optional() private readonly jLyricApi?: JLyricApi,
         @Optional() private readonly utaTenApi?: UtaTenApi,
         @Optional() private readonly romanizationService?: LyricsRomanizationService,
+        @Optional() private readonly lyricsTranslateApi?: LyricsTranslateApi,
+        @Optional() private readonly songLyricsApi?: SongLyricsApi,
     ) {}
 
     public async getLyricsAsync(track: TrackModel): Promise<LyricsModel> {
@@ -192,6 +196,26 @@ export class OnlineLyricsGetter implements ILyricsGetter {
             } catch { /* ignore */ }
         }
 
+        // LyricsTranslate (Multilingual, Western & Japanese)
+        if (fallbackCandidates.length === 0) {
+            try {
+                const lt = await this.withTimeout(this.getLyricsFromLyricsTranslateAsync(track, artist, rawTitle, searchQueries, titleCandidates), 3000, undefined);
+                if (lt != null && !StringUtils.isNullOrWhiteSpace(lt.plainText)) {
+                    fallbackCandidates.push(lt);
+                }
+            } catch { /* ignore */ }
+        }
+
+        // SongLyrics (Western)
+        if (fallbackCandidates.length === 0) {
+            try {
+                const sl = await this.withTimeout(this.getLyricsFromSongLyricsAsync(track, artist, rawTitle, titleCandidates), 2500, undefined);
+                if (sl != null && !StringUtils.isNullOrWhiteSpace(sl.plainText)) {
+                    fallbackCandidates.push(sl);
+                }
+            } catch { /* ignore */ }
+        }
+
         // AZLyrics
         if (fallbackCandidates.length === 0) {
             try {
@@ -289,6 +313,16 @@ export class OnlineLyricsGetter implements ILyricsGetter {
         const geniusModel = await this.queryGeniusAsync(cleanQuery, track);
         if (geniusModel != null && !StringUtils.isNullOrWhiteSpace(geniusModel.plainText)) {
             return [geniusModel];
+        }
+
+        const lyricsTranslateModel = await this.queryLyricsTranslateAsync(cleanQuery, track);
+        if (lyricsTranslateModel != null && !StringUtils.isNullOrWhiteSpace(lyricsTranslateModel.plainText)) {
+            return [lyricsTranslateModel];
+        }
+
+        const songLyricsModel = await this.querySongLyricsAsync(cleanQuery, track);
+        if (songLyricsModel != null && !StringUtils.isNullOrWhiteSpace(songLyricsModel.plainText)) {
+            return [songLyricsModel];
         }
 
         return [];
@@ -1020,6 +1054,142 @@ export class OnlineLyricsGetter implements ILyricsGetter {
                     geniusLyrics.text,
                     this.resolveMatchedValue(geniusLyrics.matchedTitle, track?.rawTitle),
                     this.resolveMatchedValue(geniusLyrics.matchedArtist, track?.rawFirstArtist),
+                );
+            }
+        } catch {
+            // Ignore
+        }
+        return undefined;
+    }
+
+    private async getLyricsFromLyricsTranslateAsync(
+        track: TrackModel,
+        artist: string,
+        rawTitle: string,
+        queryCandidates: string[],
+        titleCandidates: string[],
+    ): Promise<LyricsModel | undefined> {
+        if (this.lyricsTranslateApi == null) {
+            return undefined;
+        }
+
+        for (const candidate of queryCandidates) {
+            try {
+                const ltLyrics: Lyrics = await this.lyricsTranslateApi.searchAndExtractAsync(candidate, artist, rawTitle);
+                if (!StringUtils.isNullOrWhiteSpace(ltLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(ltLyrics.text, artist, rawTitle)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(ltLyrics.text, track);
+                    return LyricsModel.plain(
+                        track,
+                        ltLyrics.sourceName,
+                        LyricsSourceType.online,
+                        cleaned,
+                        this.resolveMatchedValue(ltLyrics.matchedTitle, rawTitle),
+                        this.resolveMatchedValue(ltLyrics.matchedArtist, artist),
+                    );
+                }
+            } catch (e) {
+                this.logger.error(e, 'Could not get lyrics from LyricsTranslate', 'OnlineLyricsGetter', 'getLyricsFromLyricsTranslateAsync');
+            }
+        }
+
+        for (const candTitle of titleCandidates) {
+            try {
+                const ltLyrics: Lyrics = await this.lyricsTranslateApi.getLyricsAsync(artist, candTitle);
+                if (!StringUtils.isNullOrWhiteSpace(ltLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(ltLyrics.text, artist, candTitle)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(ltLyrics.text, track);
+                    return LyricsModel.plain(
+                        track,
+                        ltLyrics.sourceName,
+                        LyricsSourceType.online,
+                        cleaned,
+                        this.resolveMatchedValue(ltLyrics.matchedTitle, candTitle),
+                        this.resolveMatchedValue(ltLyrics.matchedArtist, artist),
+                    );
+                }
+            } catch (e) {
+                this.logger.error(e, 'Could not get lyrics from LyricsTranslate', 'OnlineLyricsGetter', 'getLyricsFromLyricsTranslateAsync');
+            }
+        }
+
+        return undefined;
+    }
+
+    private async getLyricsFromSongLyricsAsync(
+        track: TrackModel,
+        artist: string,
+        rawTitle: string,
+        titleCandidates: string[],
+    ): Promise<LyricsModel | undefined> {
+        if (this.songLyricsApi == null) {
+            return undefined;
+        }
+
+        for (const candTitle of titleCandidates) {
+            try {
+                const slLyrics: Lyrics = await this.songLyricsApi.getLyricsAsync(artist, candTitle);
+                if (!StringUtils.isNullOrWhiteSpace(slLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(slLyrics.text, artist, candTitle)) {
+                    const cleaned = LyricsFilterUtils.cleanLyricsText(slLyrics.text, track);
+                    return LyricsModel.plain(
+                        track,
+                        slLyrics.sourceName,
+                        LyricsSourceType.online,
+                        cleaned,
+                        this.resolveMatchedValue(slLyrics.matchedTitle, candTitle),
+                        this.resolveMatchedValue(slLyrics.matchedArtist, artist),
+                    );
+                }
+            } catch (e) {
+                this.logger.error(e, 'Could not get lyrics from SongLyrics', 'OnlineLyricsGetter', 'getLyricsFromSongLyricsAsync');
+            }
+        }
+
+        return undefined;
+    }
+
+    private async queryLyricsTranslateAsync(query: string, track?: TrackModel): Promise<LyricsModel | undefined> {
+        if (this.lyricsTranslateApi == null) {
+            return undefined;
+        }
+
+        try {
+            const artist = (track?.rawFirstArtist ?? '').trim();
+            const title = (track?.rawTitle ?? query).trim();
+            const ltLyrics = await this.lyricsTranslateApi.searchAndExtractAsync(query, artist, title);
+            if (!StringUtils.isNullOrWhiteSpace(ltLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(ltLyrics.text, artist, title)) {
+                const cleaned = LyricsFilterUtils.cleanLyricsText(ltLyrics.text, track);
+                return LyricsModel.plain(
+                    track,
+                    ltLyrics.sourceName,
+                    LyricsSourceType.online,
+                    cleaned,
+                    this.resolveMatchedValue(ltLyrics.matchedTitle, title),
+                    this.resolveMatchedValue(ltLyrics.matchedArtist, artist),
+                );
+            }
+        } catch {
+            // Ignore
+        }
+        return undefined;
+    }
+
+    private async querySongLyricsAsync(query: string, track?: TrackModel): Promise<LyricsModel | undefined> {
+        if (this.songLyricsApi == null) {
+            return undefined;
+        }
+
+        try {
+            const artist = (track?.rawFirstArtist ?? '').trim();
+            const title = (track?.rawTitle ?? query).trim();
+            const slLyrics = await this.songLyricsApi.searchAndExtractAsync(query, artist, title);
+            if (!StringUtils.isNullOrWhiteSpace(slLyrics.text) && !LyricsFilterUtils.isLanguageIncompatible(slLyrics.text, artist, title)) {
+                const cleaned = LyricsFilterUtils.cleanLyricsText(slLyrics.text, track);
+                return LyricsModel.plain(
+                    track,
+                    slLyrics.sourceName,
+                    LyricsSourceType.online,
+                    cleaned,
+                    this.resolveMatchedValue(slLyrics.matchedTitle, title),
+                    this.resolveMatchedValue(slLyrics.matchedArtist, artist),
                 );
             }
         } catch {
